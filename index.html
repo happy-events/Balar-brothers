@@ -142,7 +142,10 @@
         <div><label class="lbl">નામ *</label><input id="m_name" class="inp" required></div>
         <div><label class="lbl">ઈમેલ * (લોગીન ઈમેલ)</label><input id="m_email" type="email" class="inp" required></div>
         <div><label class="lbl">મોબાઈલ * (10 અંક)</label><input id="m_mobile" class="inp" inputmode="numeric" maxlength="10" required></div>
+        <div><label class="lbl">કેટલા નામ ઉમેરવાના છે? *</label><input id="m_shares" type="number" min="1" max="50" value="1" class="inp" required></div>
+        <div class="sm:col-span-2"><label class="lbl">બધા નામ (વૈકલ્પિક, અલ્પવિરામથી જુદા)</label><input id="m_names" class="inp" placeholder="દા.ત. ડેનિશ, રાજ, કિરણ, મીના"></div>
         <div><label class="lbl">સ્થિતિ</label><select id="m_status" class="inp"><option value="active">સક્રિય</option><option value="inactive">નિષ્ક્રિય</option></select></div>
+        <div id="m_hint" class="sm:col-span-4 text-xs text-slate-500"></div>
         <div class="sm:col-span-4 flex gap-2">
           <button class="btn bg-indigo-600" type="submit">💾 સેવ કરો</button>
           <button type="button" id="m_cancel" class="btn bg-slate-500 hidden">રદ કરો</button>
@@ -407,7 +410,7 @@ function renderMember() {
     c("📤 બાકી લોન", s.loans, "border-rose-500") +
     c("🗓️ આગામી માસિક વ્યાજ (અંદાજિત)", est, "border-amber-500") +
     c("🧾 કુલ ભરેલું વ્યાજ + દંડ", s.interest + s.fees, "border-purple-500");
-  $("memberTitle").textContent = myMember ? `${myMember.name} નો હિસાબ` : "મારો હિસાબ";
+  $("memberTitle").textContent = myMember ? `${myMember.name} નો હિસાબ${(myMember.shares || 1) > 1 ? ` (${myMember.shares} નામ)` : ""}` : "મારો હિસાબ";
   $("prName").textContent = settings.name; $("prMember").textContent = myMember?.name || user?.email || "";
   $("prDate").textContent = todayStr();
   $("memberTable").innerHTML = ledgerTable(filteredMyTxs(), { admin: false });
@@ -434,9 +437,10 @@ function renderAdmin() {
 }
 function renderMemberList() {
   if (!members.length) { $("memberListTable").innerHTML = `<tbody><tr><td class="p-6 text-center text-slate-500">કોઈ ડેટા ઉપલબ્ધ નથી</td></tr></tbody>`; return; }
-  $("memberListTable").innerHTML = `<thead class="bg-slate-100 text-left"><tr><th class="p-2">નામ</th><th class="p-2">ઈમેલ</th><th class="p-2">મોબાઈલ</th><th class="p-2">સ્થિતિ</th><th class="p-2 text-right">બચત</th><th class="p-2 text-right">બાકી લોન</th><th class="p-2">ક્રિયા</th></tr></thead><tbody>` +
+  $("memberListTable").innerHTML = `<thead class="bg-slate-100 text-left"><tr><th class="p-2">નામ</th><th class="p-2">ઈમેલ</th><th class="p-2">મોબાઈલ</th><th class="p-2">નામ સંખ્યા</th><th class="p-2">સ્થિતિ</th><th class="p-2 text-right">બચત</th><th class="p-2 text-right">બાકી લોન</th><th class="p-2">ક્રિયા</th></tr></thead><tbody>` +
     members.map(m => { const s = computeSummary(memberTxs(m.id));
       return `<tr class="border-b"><td class="p-2 font-semibold">${esc(m.name)}</td><td class="p-2">${esc(m.email)}</td><td class="p-2">${esc(m.mobile)}</td>
+      <td class="p-2" title="${esc(m.names || "")}"><b>${m.shares || 1}</b>${m.names ? `<div class="text-xs text-slate-500">${esc(m.names)}</div>` : ""}</td>
       <td class="p-2"><span class="px-2 py-0.5 rounded-full text-xs font-semibold ${m.status === "active" ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-600"}">${m.status === "active" ? "સક્રિય" : "નિષ્ક્રિય"}</span></td>
       <td class="p-2 text-right">${fmt(s.savings)}</td><td class="p-2 text-right">${fmt(s.loans)}</td>
       <td class="p-2 whitespace-nowrap"><button data-mact="edit" data-id="${m.id}" class="px-2 py-1 rounded bg-blue-500 text-white text-xs font-semibold">ફેરફાર</button>
@@ -453,7 +457,11 @@ function fillSettingsForm() {
 function refreshEntry(trigger) {
   const type = $("t_type").value, mid = $("t_member").value;
   if (trigger !== "amount" && trigger !== "note" && trigger !== "date" && trigger !== "month") {
-    if (type === "deposit") $("t_amount").value = settings.monthlySavings;
+    if (type === "deposit") {
+      const mm = members.find(x => x.id === mid), n = mm?.shares || 1;
+      $("t_amount").value = settings.monthlySavings * n;
+      if (n > 1) $("t_note").value = `${fmt(settings.monthlySavings)} × ${n} નામ`;
+    }
     if (type === "interest" && mid) {
       const bal = loanBalance(mid);
       if (bal > 0) {
@@ -571,12 +579,18 @@ $("settingsForm").onsubmit = async e => {
 
 /* ---------- Members CRUD ---------- */
 function resetMemberForm() {
-  $("memberForm").reset(); $("m_id").value = ""; $("memFormTitle").textContent = "નવો સભ્ય ઉમેરો"; $("m_cancel").classList.add("hidden");
+  $("memberForm").reset(); $("m_id").value = ""; updHint(); $("memFormTitle").textContent = "નવો સભ્ય ઉમેરો"; $("m_cancel").classList.add("hidden");
 }
+function updHint() {
+  const n = Math.max(1, Math.floor(+$("m_shares").value || 1));
+  $("m_hint").textContent = `માસિક બચત/હપ્તો: ${fmt(settings.monthlySavings)} × ${n} નામ = ${fmt(settings.monthlySavings * n)}`;
+}
+$("m_shares").oninput = updHint;
 $("m_cancel").onclick = resetMemberForm;
 $("memberForm").onsubmit = async e => {
   e.preventDefault();
-  const data = { name: $("m_name").value.trim(), email: lc($("m_email").value), mobile: $("m_mobile").value.replace(/\D/g, ""), status: $("m_status").value };
+  const data = { name: $("m_name").value.trim(), email: lc($("m_email").value), mobile: $("m_mobile").value.replace(/\D/g, ""), status: $("m_status").value,
+    shares: Math.max(1, Math.floor(+$("m_shares").value || 1)), names: $("m_names").value.trim() };
   if (data.mobile.length !== 10) return toast("મોબાઈલ નંબર 10 અંકનો હોવો જોઈએ.", "err");
   const id = $("m_id").value;
   if (members.some(m => m.email === data.email && m.id !== id)) return toast("આ ઈમેલ સાથે સભ્ય પહેલેથી છે.", "err");
@@ -598,6 +612,7 @@ $("memberListTable").onclick = async e => {
   const m = members.find(x => x.id === b.dataset.id); if (!m) return;
   if (b.dataset.mact === "edit") {
     $("m_id").value = m.id; $("m_name").value = m.name; $("m_email").value = m.email; $("m_mobile").value = m.mobile; $("m_status").value = m.status;
+    $("m_shares").value = m.shares || 1; $("m_names").value = m.names || ""; updHint();
     $("memFormTitle").textContent = "સભ્ય ફેરફાર"; $("m_cancel").classList.remove("hidden"); window.scrollTo({ top: 0, behavior: "smooth" });
   } else {
     try { await updateDoc(doc(db, "members", m.id), { status: m.status === "active" ? "inactive" : "active" }); toast("✅ સ્થિતિ બદલાઈ."); }
@@ -671,7 +686,7 @@ function whatsapp(t) {
   const m = members.find(x => x.id === t.memberId);
   if (!m?.mobile) return toast("સભ્યનો મોબાઈલ નંબર ઉપલબ્ધ નથી.", "err");
   const s = computeSummary(memberTxs(t.memberId));
-  const msg = `🏦 *${settings.name}*\n\nસભ્યનું નામ: ${t.memberName}\nતારીખ / મહિનો: ${t.date} / ${t.month}\nવિગત: ${TYPES[t.type]?.label}${t.note ? " (" + t.note + ")" : ""}\nરકમ: ${fmt(t.amount)}\n\nકુલ બચત બેલેન્સ: ${fmt(s.savings)}\nબાકી લોન બેલેન્સ: ${fmt(s.loans)}\n\nઆભાર 🙏`;
+  const msg = `🏦 *${settings.name}*\n\nસભ્યનું નામ: ${t.memberName}${(m.shares || 1) > 1 ? ` (${m.shares} નામ)` : ""}\nતારીખ / મહિનો: ${t.date} / ${t.month}\nવિગત: ${TYPES[t.type]?.label}${t.note ? " (" + t.note + ")" : ""}\nરકમ: ${fmt(t.amount)}\n\nકુલ બચત બેલેન્સ: ${fmt(s.savings)}\nબાકી લોન બેલેન્સ: ${fmt(s.loans)}\n\nઆભાર 🙏`;
   window.open(`https://wa.me/91${m.mobile}?text=${encodeURIComponent(msg)}`, "_blank");
 }
 
@@ -716,9 +731,9 @@ function downloadCSV(name, rows) {
 }
 $("exp_members").onclick = () => {
   if (!members.length) return toast("કોઈ ડેટા ઉપલબ્ધ નથી.", "warn");
-  const rows = [["સભ્યનું નામ", "મોબાઈલ નંબર", "ઈમેલ", "કુલ બચત બેલેન્સ (₹)", "લીધેલી લોન (₹)", "ભરેલા લોન હપ્તા (₹)", "બાકી લોન (₹)", "ભરેલું વ્યાજ અને દંડ (₹)"]];
+  const rows = [["સભ્યનું નામ", "મોબાઈલ નંબર", "ઈમેલ", "નામ સંખ્યા", "કુલ બચત બેલેન્સ (₹)", "લીધેલી લોન (₹)", "ભરેલા લોન હપ્તા (₹)", "બાકી લોન (₹)", "ભરેલું વ્યાજ અને દંડ (₹)"]];
   members.forEach(m => { const s = computeSummary(memberTxs(m.id));
-    rows.push([m.name, m.mobile, m.email, s.savings, s.disbursed, s.repaid, s.loans, r2(s.interest + s.fees)]); });
+    rows.push([m.name, m.mobile, m.email, m.shares || 1, s.savings, s.disbursed, s.repaid, s.loans, r2(s.interest + s.fees)]); });
   downloadCSV(`members_balance_${todayStr()}.csv`, rows);
 };
 $("exp_tx").onclick = () => {
