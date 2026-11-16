@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>બચત મંડળ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body{font-family:'Noto Sans Gujarati',system-ui,sans-serif;background:#f1f5f9}
+  .tab-btn{padding:.5rem .9rem;border-radius:.6rem;font-weight:600;font-size:.875rem;white-space:nowrap;color:#475569;background:#fff;border:1px solid #e2e8f0}
+  .tab-btn.active{background:#4f46e5;color:#fff;border-color:#4f46e5}
+  .inp{width:100%;border:1px solid #cbd5e1;border-radius:.6rem;padding:.55rem .75rem;background:#fff;font-size:.95rem}
+  .inp:focus{outline:2px solid #818cf8;border-color:#818cf8}
+  .lbl{display:block;font-size:.8rem;font-weight:600;color:#475569;margin-bottom:.25rem}
+  .btn{padding:.55rem 1rem;border-radius:.6rem;font-weight:600;font-size:.9rem;color:#fff;transition:.15s}
+  .btn:hover{filter:brightness(.92)} .btn:disabled{opacity:.5;cursor:not-allowed}
+  .card{background:#fff;border-radius:1rem;box-shadow:0 1px 3px rgba(0,0,0,.08);border:1px solid #e2e8f0}
+  .spinner{width:2.5rem;height:2.5rem;border:4px solid #c7d2fe;border-top-color:#4f46e5;border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  table th{white-space:nowrap}
+  @media print{
+    body{background:#fff}
+    body *{visibility:hidden}
+    #printArea,#printArea *{visibility:visible}
+    #printArea{position:absolute;left:0;top:0;width:100%}
+    .no-print{display:none!important}
+  }
+</style>
+</head>
+<body>
+
+<!-- Loader -->
+<div id="loader" class="fixed inset-0 bg-white/80 z-[100] flex items-center justify-center"><div class="spinner"></div></div>
+
+<!-- Toast -->
+<div id="toastBox" class="fixed top-4 left-1/2 -translate-x-1/2 z-[120] space-y-2 w-[92%] max-w-md no-print"></div>
+
+<!-- Navbar -->
+<nav class="bg-indigo-700 text-white sticky top-0 z-40 shadow no-print">
+  <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+    <div class="min-w-0">
+      <div id="navName" class="font-bold text-lg truncate">બચત મંડળ</div>
+      <div id="navSub" class="text-xs text-indigo-200 truncate"></div>
+    </div>
+    <div class="flex items-center gap-2 shrink-0">
+      <span id="navUser" class="hidden sm:inline text-xs text-indigo-100"></span>
+      <button id="btnLogin" class="btn bg-white !text-indigo-700">🔐 લોગીન કરો</button>
+      <button id="btnLogout" class="btn bg-rose-500 hidden">લોગ આઉટ</button>
+    </div>
+  </div>
+</nav>
+
+<main class="max-w-6xl mx-auto px-4 py-5 space-y-6">
+
+  <!-- Summary cards -->
+  <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 no-print" id="summaryCards"></section>
+
+  <!-- Rules board -->
+  <section class="card p-5 no-print">
+    <h2 class="text-lg font-bold text-slate-800 mb-3">📜 મંડળના નિયમો અને નીતિ-નિયમો</h2>
+    <div id="rulesBoard" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3"></div>
+    <div id="rulesCustom" class="mt-4"></div>
+  </section>
+
+  <!-- Guest hint -->
+  <section id="guestHint" class="card p-5 text-center text-slate-600 no-print">
+    સભ્યો પોતાનો હિસાબ જોવા માટે ઉપર <b>"લોગીન કરો"</b> બટન દબાવો.
+  </section>
+
+  <!-- Member dashboard -->
+  <section id="memberView" class="hidden space-y-4">
+    <div id="printArea" class="space-y-4">
+      <div class="hidden print:block text-center">
+        <div id="prName" class="text-xl font-bold"></div>
+        <div class="text-sm">સભ્ય સ્ટેટમેન્ટ — <span id="prMember"></span> — <span id="prDate"></span></div>
+      </div>
+      <div class="flex items-center justify-between no-print">
+        <h2 class="text-lg font-bold text-slate-800">👤 <span id="memberTitle">મારો હિસાબ</span></h2>
+        <button onclick="window.print()" class="btn bg-slate-700">🖨️ પ્રિન્ટ / સ્ટેટમેન્ટ ડાઉનલોડ</button>
+      </div>
+      <div id="memberCards" class="grid grid-cols-2 lg:grid-cols-4 gap-3"></div>
+      <div class="card p-4">
+        <div class="flex flex-wrap gap-2 mb-3 no-print">
+          <select id="mf_type" class="inp !w-auto"></select>
+          <input id="mf_month" type="month" class="inp !w-auto">
+          <button id="mf_clear" class="btn bg-slate-500">સાફ કરો</button>
+        </div>
+        <div class="overflow-x-auto"><table class="w-full text-sm" id="memberTable"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Admin panel -->
+  <section id="adminView" class="hidden space-y-4 no-print">
+    <h2 class="text-lg font-bold text-slate-800">🛠️ એડમિન પેનલ</h2>
+    <div class="flex gap-2 overflow-x-auto pb-1" id="adminTabs">
+      <button class="tab-btn active" data-tab="tEntry">➕ નવી એન્ટ્રી</button>
+      <button class="tab-btn" data-tab="tLedger">📒 ખાતાવહી</button>
+      <button class="tab-btn" data-tab="tMembers">👥 સભ્યો</button>
+      <button class="tab-btn" data-tab="tInterest">⚡ માસિક વ્યાજ</button>
+      <button class="tab-btn" data-tab="tDividend">🎉 ડિવિડન્ડ</button>
+      <button class="tab-btn" data-tab="tReports">📥 રિપોર્ટ</button>
+      <button class="tab-btn" data-tab="tSettings">⚙️ સેટિંગ્સ</button>
+    </div>
+
+    <!-- Entry -->
+    <div id="tEntry" class="tabpane card p-5">
+      <h3 class="font-bold mb-3">સ્માર્ટ વ્યવહાર એન્ટ્રી</h3>
+      <form id="entryForm" class="grid sm:grid-cols-2 gap-3">
+        <div><label class="lbl">સભ્ય *</label><select id="t_member" class="inp" required></select></div>
+        <div><label class="lbl">કયા મહિના માટે *</label><input id="t_month" type="month" class="inp" required></div>
+        <div><label class="lbl">ચૂકવણી તારીખ *</label><input id="t_date" type="date" class="inp" required></div>
+        <div><label class="lbl">વ્યવહારનો પ્રકાર *</label><select id="t_type" class="inp" required></select></div>
+        <div><label class="lbl">રકમ (₹) *</label><input id="t_amount" type="number" min="0" step="0.01" class="inp" required></div>
+        <div><label class="lbl">નોંધ</label><input id="t_note" type="text" class="inp"></div>
+        <div id="lateBox" class="sm:col-span-2 hidden bg-yellow-50 border border-yellow-300 rounded-xl p-3 text-yellow-900">
+          <div id="lateMsg" class="font-semibold text-sm"></div>
+          <label class="flex items-center gap-2 mt-2 text-sm"><input id="t_fee" type="checkbox" checked class="w-4 h-4"> આપમેળે દંડ (Late Fee) ની અલગ એન્ટ્રી પણ સાથે ઉમેરો</label>
+        </div>
+        <div class="sm:col-span-2"><button class="btn bg-indigo-600 w-full sm:w-auto" type="submit">💾 એન્ટ્રી સેવ કરો</button></div>
+      </form>
+    </div>
+
+    <!-- Ledger -->
+    <div id="tLedger" class="tabpane card p-5 hidden">
+      <h3 class="font-bold mb-3">સંપૂર્ણ ખાતાવહી</h3>
+      <div class="flex flex-wrap gap-2 mb-3">
+        <input id="lf_search" class="inp !w-auto" placeholder="🔍 સભ્યનું નામ શોધો">
+        <select id="lf_type" class="inp !w-auto"></select>
+        <input id="lf_month" type="month" class="inp !w-auto">
+        <button id="lf_clear" class="btn bg-slate-500">સાફ કરો</button>
+      </div>
+      <div class="overflow-x-auto"><table class="w-full text-sm" id="adminTable"></table></div>
+    </div>
+
+    <!-- Members -->
+    <div id="tMembers" class="tabpane card p-5 hidden">
+      <h3 class="font-bold mb-3" id="memFormTitle">નવો સભ્ય ઉમેરો</h3>
+      <form id="memberForm" class="grid sm:grid-cols-4 gap-3 mb-5">
+        <input type="hidden" id="m_id">
+        <div><label class="lbl">નામ *</label><input id="m_name" class="inp" required></div>
+        <div><label class="lbl">ઈમેલ * (લોગીન ઈમેલ)</label><input id="m_email" type="email" class="inp" required></div>
+        <div><label class="lbl">મોબાઈલ * (10 અંક)</label><input id="m_mobile" class="inp" inputmode="numeric" maxlength="10" required></div>
+        <div><label class="lbl">સ્થિતિ</label><select id="m_status" class="inp"><option value="active">સક્રિય</option><option value="inactive">નિષ્ક્રિય</option></select></div>
+        <div class="sm:col-span-4 flex gap-2">
+          <button class="btn bg-indigo-600" type="submit">💾 સેવ કરો</button>
+          <button type="button" id="m_cancel" class="btn bg-slate-500 hidden">રદ કરો</button>
+        </div>
+      </form>
+      <p class="text-xs text-slate-500 mb-2">નોંધ: સભ્યને લોગીન આપવા માટે Firebase Console → Authentication માં આ જ ઈમેલથી યુઝર બનાવો.</p>
+      <div class="overflow-x-auto"><table class="w-full text-sm" id="memberListTable"></table></div>
+    </div>
+
+    <!-- Bulk interest -->
+    <div id="tInterest" class="tabpane card p-5 hidden">
+      <h3 class="font-bold mb-3">માસિક વ્યાજ જનરેટર</h3>
+      <div class="flex flex-wrap items-end gap-3">
+        <div><label class="lbl">મહિનો</label><input id="bi_month" type="month" class="inp"></div>
+        <button id="bi_btn" class="btn bg-amber-600">⚡ બધા સભ્યોનું માસિક વ્યાજ ગણો</button>
+      </div>
+      <p class="text-xs text-slate-500 mt-2">જે સભ્યનું તે મહિનાનું વ્યાજ પહેલેથી નોંધાયેલું હશે તેમને છોડી દેવામાં આવશે.</p>
+    </div>
+
+    <!-- Dividend -->
+    <div id="tDividend" class="tabpane card p-5 hidden">
+      <h3 class="font-bold mb-3">વાર્ષિક નફો અને ડિવિડન્ડ વહેંચણી</h3>
+      <div id="divStats" class="grid sm:grid-cols-3 gap-3 mb-4"></div>
+      <div class="flex flex-wrap items-end gap-3">
+        <div><label class="lbl">નાણાકીય વર્ષ (દા.ત. 2025-26)</label><input id="dv_label" class="inp" placeholder="2025-26"></div>
+        <button id="dv_btn" class="btn bg-emerald-600">🎉 બધા સભ્યોને ડિવિડન્ડ વહેંચો</button>
+      </div>
+    </div>
+
+    <!-- Reports -->
+    <div id="tReports" class="tabpane card p-5 hidden">
+      <h3 class="font-bold mb-3">હિસાબ અને બેલેન્સ શીટ ડાઉનલોડ</h3>
+      <div class="flex flex-col sm:flex-row gap-3">
+        <button id="exp_members" class="btn bg-green-600">📥 સભ્યોની બેલેન્સ શીટ ડાઉનલોડ (Member Summary CSV)</button>
+        <button id="exp_tx" class="btn bg-green-600">📥 સંપૂર્ણ વ્યવહાર હિસાબ ડાઉનલોડ (All Transactions CSV)</button>
+      </div>
+      <p class="text-xs text-slate-500 mt-2">વ્યવહાર CSV માં "ખાતાવહી" ટેબના ફિલ્ટર લાગુ પડે છે.</p>
+    </div>
+
+    <!-- Settings -->
+    <div id="tSettings" class="tabpane card p-5 hidden">
+      <h3 class="font-bold mb-3">મંડળના નિયમો અને સેટિંગ્સ</h3>
+      <form id="settingsForm" class="grid sm:grid-cols-2 gap-3">
+        <div><label class="lbl">મંડળનું નામ</label><input id="s_name" class="inp" required></div>
+        <div><label class="lbl">સબટાઈટલ / સંપર્ક વિગત</label><input id="s_sub" class="inp"></div>
+        <div><label class="lbl">માસિક ફરજિયાત બચત રકમ (₹)</label><input id="s_save" type="number" min="0" class="inp" required></div>
+        <div><label class="lbl">લોનનો માસિક વ્યાજ દર (%)</label><input id="s_rate" type="number" min="0" step="0.01" class="inp" required></div>
+        <div><label class="lbl">હપ્તો ભરવાની નિયત તારીખ (1 થી 28)</label><input id="s_due" type="number" min="1" max="28" class="inp" required></div>
+        <div><label class="lbl">દંડનો પ્રકાર</label>
+          <select id="s_ftype" class="inp"><option value="fixed">ફિક્સ રકમ</option><option value="per_day">પ્રતિ દિવસ</option></select></div>
+        <div><label class="lbl">દંડની રકમ (₹)</label><input id="s_famt" type="number" min="0" class="inp" required></div>
+        <div class="sm:col-span-2"><label class="lbl">લોન મર્યાદા અને અન્ય નિયમો (દરેક લીટી એક મુદ્દો)</label><textarea id="s_rules" rows="5" class="inp"></textarea></div>
+        <div class="sm:col-span-2"><button class="btn bg-indigo-600" type="submit">💾 સેટિંગ્સ સેવ કરો</button></div>
+      </form>
+    </div>
+  </section>
+</main>
+
+<footer class="text-center text-xs text-slate-400 py-6 no-print">© બચત મંડળ</footer>
+
+<!-- Login modal -->
+<div id="loginModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 no-print">
+  <div class="card w-full max-w-sm p-5">
+    <div class="flex justify-between items-center mb-3"><h3 class="font-bold text-lg">🔐 લોગીન</h3><button onclick="closeModal('loginModal')" class="text-2xl leading-none">&times;</button></div>
+    <form id="loginForm" class="space-y-3">
+      <div><label class="lbl">ઈમેલ</label><input id="l_email" type="email" class="inp" required autocomplete="username"></div>
+      <div><label class="lbl">પાસવર્ડ</label><input id="l_pass" type="password" class="inp" required autocomplete="current-password"></div>
+      <button type="button" id="forgotBtn" class="text-sm text-indigo-600 font-semibold">🔑 પાસવર્ડ ભૂલી ગયા છો?</button>
+      <div id="loginMsg" class="text-sm hidden"></div>
+      <button class="btn bg-indigo-600 w-full" type="submit">લોગીન કરો</button>
+    </form>
+  </div>
+</div>
+
+<!-- Edit transaction modal -->
+<div id="editModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 no-print">
+  <div class="card w-full max-w-lg p-5 max-h-[90vh] overflow-y-auto">
+    <div class="flex justify-between items-center mb-3"><h3 class="font-bold text-lg">✏️ એન્ટ્રી ફેરફાર</h3><button onclick="closeModal('editModal')" class="text-2xl leading-none">&times;</button></div>
+    <form id="editForm" class="grid sm:grid-cols-2 gap-3">
+      <input type="hidden" id="e_id">
+      <div><label class="lbl">સભ્ય</label><select id="e_member" class="inp" required></select></div>
+      <div><label class="lbl">મહિનો</label><input id="e_month" type="month" class="inp" required></div>
+      <div><label class="lbl">તારીખ</label><input id="e_date" type="date" class="inp" required></div>
+      <div><label class="lbl">પ્રકાર</label><select id="e_type" class="inp" required></select></div>
+      <div><label class="lbl">રકમ (₹)</label><input id="e_amount" type="number" min="0" step="0.01" class="inp" required></div>
+      <div><label class="lbl">નોંધ</label><input id="e_note" class="inp"></div>
+      <div class="sm:col-span-2 flex gap-2"><button class="btn bg-indigo-600" type="submit">અપડેટ કરો</button><button type="button" onclick="closeModal('editModal')" class="btn bg-slate-500">રદ કરો</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- Confirm modal -->
+<div id="confirmModal" class="fixed inset-0 bg-black/50 z-[110] hidden items-center justify-center p-4 no-print">
+  <div class="card w-full max-w-lg p-5 max-h-[90vh] flex flex-col">
+    <h3 id="cf_title" class="font-bold text-lg mb-2"></h3>
+    <div id="cf_body" class="text-sm overflow-y-auto mb-4"></div>
+    <div class="flex gap-2 justify-end">
+      <button id="cf_no" class="btn bg-slate-500">રદ કરો</button>
+      <button id="cf_yes" class="btn bg-indigo-600">હા, આગળ વધો</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+/* ============================================================
+   🔧 CONFIGURATION — અહીં તમારી Firebase વિગતો ભરો
+   Firebase Console → Project settings → Your apps → Web app
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyAwsaTjUrlXy0i05hnS6vvZ9Cjvy5M3HwA",
+  authDomain: "balar-brothers-bachat.firebaseapp.com",
+  projectId: "balar-brothers-bachat",
+  storageBucket: "balar-brothers-bachat.firebasestorage.app",
+  messagingSenderId: "1093414695256",
+  appId: "1:1093414695256:web:ad5b20cfa2e0e7ae00f52d"
+};
+// એડમિનનો ઈમેલ (Firestore Rules માં પણ આ જ ઈમેલ મૂકવો)
+const ADMIN_EMAIL = "ankitbalar01@gmail.com";
+/* ============================================================ */
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, doc, setDoc, addDoc, updateDoc, deleteDoc, getDocs, onSnapshot,
+  query, where, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+/* ---------- Helpers ---------- */
+const $ = id => document.getElementById(id);
+const fmt = n => "₹" + Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const r2 = n => Math.round(n * 100) / 100;
+const todayStr = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
+const monthStr = () => todayStr().slice(0, 7);
+const lc = s => String(s || "").trim().toLowerCase();
+
+const TYPES = {
+  deposit:    { label: "માસિક જમા",       cls: "bg-emerald-100 text-emerald-800" },
+  loan_out:   { label: "લોન ઉપાડ",        cls: "bg-rose-100 text-rose-800" },
+  loan_repay: { label: "લોન હપ્તો",       cls: "bg-blue-100 text-blue-800" },
+  interest:   { label: "વ્યાજ",            cls: "bg-amber-100 text-amber-800" },
+  late_fee:   { label: "દંડ (Late Fee)",   cls: "bg-orange-100 text-orange-800" },
+  dividend:   { label: "વાર્ષિક ડિવિડન્ડ", cls: "bg-purple-100 text-purple-800" }
+};
+const badge = t => `<span class="px-2 py-0.5 rounded-full text-xs font-semibold ${TYPES[t]?.cls || "bg-slate-100"}">${TYPES[t]?.label || esc(t)}</span>`;
+
+const DEFAULTS = { name: "બચત મંડળ", sub: "", monthlySavings: 500, interestRate: 1, dueDay: 10,
+  lateFeeType: "fixed", lateFeeAmount: 50, rules: "" };
+
+let settings = { ...DEFAULTS };
+let summary = null;
+let user = null, isAdmin = false;
+let members = [], txs = [];       // admin data
+let myMember = null, myTxs = [];  // member data
+let unsubs = [];
+
+function toast(msg, type = "ok") {
+  const el = document.createElement("div");
+  const color = type === "ok" ? "bg-emerald-600" : type === "warn" ? "bg-amber-500" : "bg-rose-600";
+  el.className = `${color} text-white px-4 py-3 rounded-xl shadow-lg text-sm font-semibold`;
+  el.textContent = msg;
+  $("toastBox").appendChild(el);
+  setTimeout(() => el.remove(), type === "ok" ? 3500 : 6000);
+}
+const loading = on => $("loader").style.display = on ? "flex" : "none";
+window.closeModal = id => { $(id).classList.add("hidden"); $(id).classList.remove("flex"); };
+const openModal = id => { $(id).classList.remove("hidden"); $(id).classList.add("flex"); };
+
+function confirmBox(title, html, yes = "હા, આગળ વધો") {
+  return new Promise(res => {
+    $("cf_title").textContent = title; $("cf_body").innerHTML = html; $("cf_yes").textContent = yes;
+    openModal("confirmModal");
+    const done = v => { closeModal("confirmModal"); $("cf_yes").onclick = $("cf_no").onclick = null; res(v); };
+    $("cf_yes").onclick = () => done(true); $("cf_no").onclick = () => done(false);
+  });
+}
+
+/* ---------- Calculations ---------- */
+function computeSummary(list) {
+  let dep = 0, div = 0, out = 0, rep = 0, int = 0, fee = 0;
+  for (const t of list) {
+    const a = +t.amount || 0;
+    if (t.type === "deposit") dep += a; else if (t.type === "loan_out") out += a;
+    else if (t.type === "loan_repay") rep += a; else if (t.type === "interest") int += a;
+    else if (t.type === "late_fee") fee += a; else if (t.type === "dividend") div += a;
+  }
+  const savings = dep + div, loans = out - rep, pool = int + fee - div;
+  // નોંધ: બચતમાં ડિવિડન્ડ પહેલેથી સામેલ છે, તેથી બે વાર ગણાતું નથી
+  return { deposits: dep, dividends: div, disbursed: out, repaid: rep, interest: int, fees: fee,
+    savings, loans, pool, net: savings + pool - loans };
+}
+const memberTxs = id => txs.filter(t => t.memberId === id);
+const loanBalance = id => { const s = computeSummary(memberTxs(id)); return s.loans; };
+
+function lateInfo(month, payDate, type) {
+  if (!["deposit", "loan_repay"].includes(type) || !month || !payDate) return null;
+  const [y, m] = month.split("-").map(Number);
+  const due = new Date(y, m - 1, +settings.dueDay);
+  const pay = new Date(payDate + "T00:00:00");
+  const days = Math.floor((pay - due) / 864e5);
+  if (days <= 0) return null;
+  const fee = settings.lateFeeType === "per_day" ? days * +settings.lateFeeAmount : +settings.lateFeeAmount;
+  return fee > 0 ? { days, fee } : null;
+}
+
+/* ---------- Summary doc sync (પબ્લિક વાંચન માટે ફક્ત કુલ આંકડા) ---------- */
+async function syncSummary() {
+  const snap = await getDocs(collection(db, "transactions"));
+  const s = computeSummary(snap.docs.map(d => d.data()));
+  await setDoc(doc(db, "public", "summary"), { ...s, updatedAt: serverTimestamp() });
+}
+
+/* ---------- Render: public ---------- */
+function renderPublic() {
+  $("navName").textContent = settings.name || "બચત મંડળ";
+  $("navSub").textContent = settings.sub || "";
+  document.title = settings.name || "બચત મંડળ";
+  const s = summary || { net: 0, savings: 0, loans: 0, pool: 0 };
+  const card = (t, v, c, icon) => `<div class="card p-4 border-l-4 ${c}"><div class="text-xs text-slate-500 font-semibold">${icon} ${t}</div><div class="text-xl sm:text-2xl font-bold mt-1">${fmt(v)}</div></div>`;
+  $("summaryCards").innerHTML =
+    card("કુલ ફંડ બેલેન્સ", s.net, "border-indigo-500", "🏦") +
+    card("કુલ જમા બચત", s.savings, "border-emerald-500", "💰") +
+    card("કુલ બાકી લોન", s.loans, "border-rose-500", "📤") +
+    card("વણવહેંચાયેલ નફો (વ્યાજ + દંડ)", s.pool, "border-amber-500", "📈");
+
+  const ft = settings.lateFeeType === "per_day" ? `₹${settings.lateFeeAmount} પ્રતિ દિવસ` : `₹${settings.lateFeeAmount} ફિક્સ`;
+  const item = (t, v) => `<div class="bg-slate-50 rounded-xl p-3 border border-slate-200"><div class="text-xs text-slate-500">${t}</div><div class="font-bold text-slate-800 mt-1">${v}</div></div>`;
+  $("rulesBoard").innerHTML =
+    item("માસિક ફરજિયાત બચત", `${fmt(settings.monthlySavings)} / માસ`) +
+    item("માસિક વ્યાજ દર", `${settings.interestRate}% / માસ`) +
+    item("હપ્તો ભરવાની નિયત તારીખ", `દર મહિનાની ${settings.dueDay} તારીખ સુધીમાં`) +
+    item("મોડા હપ્તાનો દંડ", ft);
+  const lines = String(settings.rules || "").split("\n").map(x => x.trim()).filter(Boolean);
+  $("rulesCustom").innerHTML = lines.length
+    ? `<div class="text-sm font-semibold text-slate-700 mb-1">વધારાના નિયમો અને શરતો</div><ul class="list-disc pl-6 space-y-1 text-sm text-slate-700">${lines.map(l => `<li>${esc(l)}</li>`).join("")}</ul>` : "";
+}
+
+/* ---------- Ledger table ---------- */
+function ledgerTable(list, { admin }) {
+  if (!list.length) return `<tbody><tr><td class="p-6 text-center text-slate-500">કોઈ ડેટા ઉપલબ્ધ નથી</td></tr></tbody>`;
+  const head = `<thead class="bg-slate-100 text-slate-600 text-left"><tr>
+    <th class="p-2">ચૂકવણી તારીખ</th><th class="p-2">મહિનો</th>${admin ? '<th class="p-2">સભ્ય</th>' : ""}
+    <th class="p-2">પ્રકાર</th><th class="p-2 text-right">રકમ</th><th class="p-2">નોંધ</th>${admin ? '<th class="p-2">ક્રિયા</th>' : ""}</tr></thead>`;
+  const rows = list.map(t => `<tr class="border-b border-slate-100 hover:bg-slate-50">
+    <td class="p-2 whitespace-nowrap">${esc(t.date)}</td><td class="p-2">${esc(t.month)}</td>
+    ${admin ? `<td class="p-2">${esc(t.memberName)}</td>` : ""}
+    <td class="p-2">${badge(t.type)}</td><td class="p-2 text-right font-semibold whitespace-nowrap">${fmt(t.amount)}</td>
+    <td class="p-2 text-slate-600">${esc(t.note || "")}</td>
+    ${admin ? `<td class="p-2 whitespace-nowrap">
+      <button data-act="wa" data-id="${t.id}" class="px-2 py-1 rounded bg-green-500 text-white text-xs font-semibold">WhatsApp</button>
+      <button data-act="edit" data-id="${t.id}" class="px-2 py-1 rounded bg-blue-500 text-white text-xs font-semibold">ફેરફાર</button>
+      <button data-act="del" data-id="${t.id}" class="px-2 py-1 rounded bg-rose-500 text-white text-xs font-semibold">કાઢી નાખો</button></td>` : ""}
+  </tr>`).join("");
+  return head + `<tbody>${rows}</tbody>`;
+}
+const sortTx = l => [...l].sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.createdMs || 0) - (a.createdMs || 0));
+
+/* ---------- Member view ---------- */
+function filteredMyTxs() {
+  const ty = $("mf_type").value, mo = $("mf_month").value;
+  return sortTx(myTxs.filter(t => (!ty || t.type === ty) && (!mo || t.month === mo)));
+}
+function renderMember() {
+  const s = computeSummary(myTxs);
+  const est = r2(Math.max(s.loans, 0) * (+settings.interestRate / 100));
+  const c = (t, v, cl) => `<div class="card p-4 border-l-4 ${cl}"><div class="text-xs text-slate-500 font-semibold">${t}</div><div class="text-xl font-bold mt-1">${fmt(v)}</div></div>`;
+  $("memberCards").innerHTML =
+    c("💰 કુલ બચત + ડિવિડન્ડ", s.savings, "border-emerald-500") +
+    c("📤 બાકી લોન", s.loans, "border-rose-500") +
+    c("🗓️ આગામી માસિક વ્યાજ (અંદાજિત)", est, "border-amber-500") +
+    c("🎉 કુલ મળેલું ડિવિડન્ડ", s.dividends, "border-purple-500");
+  $("memberTitle").textContent = myMember ? `${myMember.name} નો હિસાબ` : "મારો હિસાબ";
+  $("prName").textContent = settings.name; $("prMember").textContent = myMember?.name || user?.email || "";
+  $("prDate").textContent = todayStr();
+  $("memberTable").innerHTML = ledgerTable(filteredMyTxs(), { admin: false });
+}
+
+/* ---------- Admin render ---------- */
+function memberOptions(sel, withBlank) {
+  return (withBlank ? `<option value="">-- સભ્ય પસંદ કરો --</option>` : "") +
+    members.map(m => `<option value="${m.id}" ${sel === m.id ? "selected" : ""}>${esc(m.name)}${m.status === "inactive" ? " (નિષ્ક્રિય)" : ""}</option>`).join("");
+}
+function typeOptions(sel, blankLabel) {
+  return (blankLabel ? `<option value="">${blankLabel}</option>` : "") +
+    Object.entries(TYPES).map(([k, v]) => `<option value="${k}" ${sel === k ? "selected" : ""}>${v.label}</option>`).join("");
+}
+function filteredAdminTxs() {
+  const q = lc($("lf_search").value), ty = $("lf_type").value, mo = $("lf_month").value;
+  return sortTx(txs.filter(t => (!q || lc(t.memberName).includes(q)) && (!ty || t.type === ty) && (!mo || t.month === mo)));
+}
+function renderAdmin() {
+  const keepM = $("t_member").value;
+  $("t_member").innerHTML = memberOptions(keepM, true);
+  $("adminTable").innerHTML = ledgerTable(filteredAdminTxs(), { admin: true });
+  renderMemberList();
+  renderDividendStats();
+}
+function renderMemberList() {
+  if (!members.length) { $("memberListTable").innerHTML = `<tbody><tr><td class="p-6 text-center text-slate-500">કોઈ ડેટા ઉપલબ્ધ નથી</td></tr></tbody>`; return; }
+  $("memberListTable").innerHTML = `<thead class="bg-slate-100 text-left"><tr><th class="p-2">નામ</th><th class="p-2">ઈમેલ</th><th class="p-2">મોબાઈલ</th><th class="p-2">સ્થિતિ</th><th class="p-2 text-right">બચત</th><th class="p-2 text-right">બાકી લોન</th><th class="p-2">ક્રિયા</th></tr></thead><tbody>` +
+    members.map(m => { const s = computeSummary(memberTxs(m.id));
+      return `<tr class="border-b"><td class="p-2 font-semibold">${esc(m.name)}</td><td class="p-2">${esc(m.email)}</td><td class="p-2">${esc(m.mobile)}</td>
+      <td class="p-2"><span class="px-2 py-0.5 rounded-full text-xs font-semibold ${m.status === "active" ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-600"}">${m.status === "active" ? "સક્રિય" : "નિષ્ક્રિય"}</span></td>
+      <td class="p-2 text-right">${fmt(s.savings)}</td><td class="p-2 text-right">${fmt(s.loans)}</td>
+      <td class="p-2 whitespace-nowrap"><button data-mact="edit" data-id="${m.id}" class="px-2 py-1 rounded bg-blue-500 text-white text-xs font-semibold">ફેરફાર</button>
+      <button data-mact="toggle" data-id="${m.id}" class="px-2 py-1 rounded bg-slate-600 text-white text-xs font-semibold">${m.status === "active" ? "નિષ્ક્રિય કરો" : "સક્રિય કરો"}</button></td></tr>`; }).join("") + `</tbody>`;
+}
+function dividendFigures() {
+  const s = computeSummary(txs);
+  const n = members.filter(m => m.status === "active").length;
+  const pool = Math.max(s.pool, 0);
+  const per = n ? Math.floor(pool / n) : 0;
+  return { pool: s.pool, n, per, rem: n ? r2(pool - per * n) : pool };
+}
+function renderDividendStats() {
+  const d = dividendFigures();
+  const c = (t, v) => `<div class="bg-slate-50 border rounded-xl p-3"><div class="text-xs text-slate-500">${t}</div><div class="font-bold text-lg">${v}</div></div>`;
+  $("divStats").innerHTML = c("કુલ વહેંચવા પાત્ર નફો", fmt(d.pool)) + c("કુલ સક્રિય સભ્યો", d.n) +
+    c("સભ્ય દીઠ મળવાપાત્ર ડિવિડન્ડ", `${fmt(d.per)} <span class="text-xs font-normal text-slate-500">(બાકી રહેતી રકમ ${fmt(d.rem)})</span>`);
+}
+function fillSettingsForm() {
+  $("s_name").value = settings.name; $("s_sub").value = settings.sub || "";
+  $("s_save").value = settings.monthlySavings; $("s_rate").value = settings.interestRate;
+  $("s_due").value = settings.dueDay; $("s_ftype").value = settings.lateFeeType;
+  $("s_famt").value = settings.lateFeeAmount; $("s_rules").value = settings.rules || "";
+}
+
+/* ---------- Entry form smart logic ---------- */
+function refreshEntry(trigger) {
+  const type = $("t_type").value, mid = $("t_member").value;
+  if (trigger !== "amount" && trigger !== "note" && trigger !== "date" && trigger !== "month") {
+    if (type === "deposit") $("t_amount").value = settings.monthlySavings;
+    if (type === "interest" && mid) {
+      const bal = loanBalance(mid);
+      if (bal > 0) {
+        $("t_amount").value = r2(bal * settings.interestRate / 100);
+        $("t_note").value = `${fmt(bal)} બાકી લોન પર ${settings.interestRate}% લેખે વ્યાજ`;
+      } else { $("t_amount").value = ""; toast("આ સભ્યની કોઈ બાકી લોન નથી.", "warn"); }
+    }
+  }
+  const li = lateInfo($("t_month").value, $("t_date").value, type);
+  $("lateBox").classList.toggle("hidden", !li);
+  if (li) $("lateMsg").textContent = `⚠️ નિયત તારીખ (તારીખ ${settings.dueDay}) પછી ચૂકવણી થઈ હોવાથી ${fmt(li.fee)} દંડ લાગુ પડે છે.`;
+}
+function resetEntry() {
+  $("entryForm").reset();
+  $("t_month").value = monthStr(); $("t_date").value = todayStr();
+  $("t_type").value = "deposit"; $("t_amount").value = settings.monthlySavings; $("t_fee").checked = true;
+  $("lateBox").classList.add("hidden");
+}
+
+/* ---------- Data subscriptions ---------- */
+function clearSubs() { unsubs.forEach(u => u()); unsubs = []; }
+function startPublic() {
+  unsubs.push(onSnapshot(doc(db, "settings", "config"), s => { settings = { ...DEFAULTS, ...(s.exists() ? s.data() : {}) }; renderPublic(); if (isAdmin) fillSettingsForm(); if (myTxs) renderMemberSafe(); }, e => console.error(e)));
+  unsubs.push(onSnapshot(doc(db, "public", "summary"), s => { summary = s.exists() ? s.data() : null; renderPublic(); }, e => console.error(e)));
+}
+const renderMemberSafe = () => { if (!$("memberView").classList.contains("hidden")) renderMember(); };
+const stamp = d => ({ id: d.id, ...d.data(), createdMs: d.data().createdAt?.toMillis?.() || 0 });
+
+function startAdmin() {
+  unsubs.push(onSnapshot(collection(db, "members"), s => {
+    members = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.name.localeCompare(b.name, "gu")); renderAdmin(); }, e => toast("સભ્યો લોડ ન થયા: " + e.message, "err")));
+  unsubs.push(onSnapshot(collection(db, "transactions"), s => {
+    txs = s.docs.map(stamp); renderAdmin(); }, e => toast("વ્યવહારો લોડ ન થયા: " + e.message, "err")));
+}
+async function startMember(email) {
+  try {
+    const ms = await getDocs(query(collection(db, "members"), where("email", "==", email)));
+    myMember = ms.empty ? null : { id: ms.docs[0].id, ...ms.docs[0].data() };
+  } catch (e) { console.error(e); }
+  unsubs.push(onSnapshot(query(collection(db, "transactions"), where("memberEmail", "==", email)), s => {
+    myTxs = s.docs.map(stamp); renderMember(); }, e => toast("તમારો હિસાબ લોડ ન થયો: " + e.message, "err")));
+  renderMember();
+  if (!myMember) toast("તમારો ઈમેલ સભ્ય યાદીમાં નથી. એડમિનનો સંપર્ક કરો.", "warn");
+}
+
+/* ---------- Auth ---------- */
+onAuthStateChanged(auth, u => {
+  clearSubs(); user = u; members = []; txs = []; myTxs = []; myMember = null;
+  isAdmin = !!u && lc(u.email) === lc(ADMIN_EMAIL);
+  $("btnLogin").classList.toggle("hidden", !!u); $("btnLogout").classList.toggle("hidden", !u);
+  $("navUser").textContent = u ? u.email : "";
+  $("guestHint").classList.toggle("hidden", !!u);
+  $("adminView").classList.toggle("hidden", !isAdmin);
+  $("memberView").classList.toggle("hidden", !(u && !isAdmin));
+  startPublic();
+  if (isAdmin) { fillSettingsForm(); resetEntry(); startAdmin(); }
+  else if (u) startMember(lc(u.email));
+  loading(false);
+});
+const authErr = c => ({
+  "auth/invalid-email": "અમાન્ય ઈમેલ ફોર્મેટ.", "auth/user-not-found": "આ ઈમેલ નોંધાયેલ નથી.",
+  "auth/wrong-password": "પાસવર્ડ ખોટો છે.", "auth/invalid-credential": "ઈમેલ અથવા પાસવર્ડ ખોટો છે.",
+  "auth/too-many-requests": "ઘણા પ્રયાસો થયા. થોડી વાર પછી ફરી પ્રયાસ કરો.", "auth/missing-email": "કૃપા કરીને ઈમેલ દાખલ કરો.",
+  "auth/network-request-failed": "ઇન્ટરનેટ કનેક્શન તપાસો.", "auth/user-disabled": "આ ખાતું બંધ કરેલું છે."
+}[c] || "કંઈક ખોટું થયું. ફરી પ્રયાસ કરો.");
+function loginMsg(t, ok) { const m = $("loginMsg"); m.textContent = t; m.className = `text-sm p-2 rounded-lg ${ok ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`; }
+
+$("btnLogin").onclick = () => { $("loginMsg").className = "hidden"; openModal("loginModal"); };
+$("btnLogout").onclick = () => signOut(auth).then(() => toast("સફળતાપૂર્વક લોગ આઉટ થયા."));
+$("loginForm").onsubmit = async e => {
+  e.preventDefault(); loading(true);
+  try { await signInWithEmailAndPassword(auth, $("l_email").value.trim(), $("l_pass").value);
+    closeModal("loginModal"); $("l_pass").value = ""; toast("✅ લોગીન સફળ!");
+  } catch (err) { loginMsg(authErr(err.code), false); loading(false); }
+  loading(false);
+};
+$("forgotBtn").onclick = async () => {
+  const email = $("l_email").value.trim();
+  if (!email) { loginMsg("કૃપા કરીને પહેલા તમારું નોંધાયેલ ઈમેલ ID ઉપર દાખલ કરો.", false); $("l_email").focus(); return; }
+  loading(true);
+  try { await sendPasswordResetEmail(auth, email);
+    loginMsg("✅ પાસવર્ડ રીસેટ કરવાની લિંક તમારા ઈમેલ પર મોકલી આપવામાં આવી છે. કૃપા કરીને તમારું ઈમેલ ઇનબોક્સ (અથવા Spam ફોલ્ડર) તપાસો.", true);
+  } catch (err) { loginMsg(authErr(err.code), false); }
+  loading(false);
+};
+
+/* ---------- Member filters ---------- */
+$("mf_type").innerHTML = typeOptions("", "બધા પ્રકાર");
+["mf_type", "mf_month"].forEach(i => $(i).onchange = renderMember);
+$("mf_clear").onclick = () => { $("mf_type").value = ""; $("mf_month").value = ""; renderMember(); };
+
+/* ---------- Admin tabs ---------- */
+$("adminTabs").onclick = e => {
+  const b = e.target.closest("[data-tab]"); if (!b) return;
+  document.querySelectorAll(".tab-btn").forEach(x => x.classList.toggle("active", x === b));
+  document.querySelectorAll(".tabpane").forEach(p => p.classList.toggle("hidden", p.id !== b.dataset.tab));
+};
+
+/* ---------- Settings save ---------- */
+$("settingsForm").onsubmit = async e => {
+  e.preventDefault();
+  const due = +$("s_due").value;
+  if (due < 1 || due > 28) return toast("નિયત તારીખ 1 થી 28 વચ્ચે હોવી જોઈએ.", "err");
+  loading(true);
+  try {
+    await setDoc(doc(db, "settings", "config"), {
+      name: $("s_name").value.trim(), sub: $("s_sub").value.trim(),
+      monthlySavings: +$("s_save").value, interestRate: +$("s_rate").value, dueDay: due,
+      lateFeeType: $("s_ftype").value, lateFeeAmount: +$("s_famt").value, rules: $("s_rules").value
+    });
+    toast("✅ સેટિંગ્સ સેવ થયા.");
+  } catch (err) { toast("સેવ ન થયું: " + err.message, "err"); }
+  loading(false);
+};
+
+/* ---------- Members CRUD ---------- */
+function resetMemberForm() {
+  $("memberForm").reset(); $("m_id").value = ""; $("memFormTitle").textContent = "નવો સભ્ય ઉમેરો"; $("m_cancel").classList.add("hidden");
+}
+$("m_cancel").onclick = resetMemberForm;
+$("memberForm").onsubmit = async e => {
+  e.preventDefault();
+  const data = { name: $("m_name").value.trim(), email: lc($("m_email").value), mobile: $("m_mobile").value.replace(/\D/g, ""), status: $("m_status").value };
+  if (data.mobile.length !== 10) return toast("મોબાઈલ નંબર 10 અંકનો હોવો જોઈએ.", "err");
+  const id = $("m_id").value;
+  if (members.some(m => m.email === data.email && m.id !== id)) return toast("આ ઈમેલ સાથે સભ્ય પહેલેથી છે.", "err");
+  loading(true);
+  try {
+    if (id) {
+      const b = writeBatch(db);
+      b.update(doc(db, "members", id), data);
+      memberTxs(id).forEach(t => b.update(doc(db, "transactions", t.id), { memberName: data.name, memberEmail: data.email }));
+      await b.commit();
+    } else await addDoc(collection(db, "members"), { ...data, createdAt: serverTimestamp() });
+    toast("✅ સભ્ય સેવ થયા."); resetMemberForm();
+    if (id) await syncSummary();
+  } catch (err) { toast("સેવ ન થયું: " + err.message, "err"); }
+  loading(false);
+};
+$("memberListTable").onclick = async e => {
+  const b = e.target.closest("[data-mact]"); if (!b) return;
+  const m = members.find(x => x.id === b.dataset.id); if (!m) return;
+  if (b.dataset.mact === "edit") {
+    $("m_id").value = m.id; $("m_name").value = m.name; $("m_email").value = m.email; $("m_mobile").value = m.mobile; $("m_status").value = m.status;
+    $("memFormTitle").textContent = "સભ્ય ફેરફાર"; $("m_cancel").classList.remove("hidden"); window.scrollTo({ top: 0, behavior: "smooth" });
+  } else {
+    try { await updateDoc(doc(db, "members", m.id), { status: m.status === "active" ? "inactive" : "active" }); toast("✅ સ્થિતિ બદલાઈ."); }
+    catch (err) { toast(err.message, "err"); }
+  }
+};
+
+/* ---------- Entry form ---------- */
+["t_member", "t_type"].forEach(i => $(i).onchange = () => refreshEntry(i));
+["t_month", "t_date"].forEach(i => $(i).onchange = () => refreshEntry("date"));
+$("t_type").innerHTML = typeOptions("deposit");
+$("entryForm").onsubmit = async e => {
+  e.preventDefault();
+  const m = members.find(x => x.id === $("t_member").value);
+  const amount = +$("t_amount").value, type = $("t_type").value;
+  if (!m) return toast("કૃપા કરીને સભ્ય પસંદ કરો.", "err");
+  if (!(amount > 0)) return toast("માન્ય રકમ દાખલ કરો.", "err");
+  const month = $("t_month").value, date = $("t_date").value;
+  if (!month || !date) return toast("મહિનો અને તારીખ દાખલ કરો.", "err");
+  const base = { memberId: m.id, memberName: m.name, memberEmail: m.email, month, date, createdAt: serverTimestamp() };
+  loading(true);
+  try {
+    const b = writeBatch(db);
+    b.set(doc(collection(db, "transactions")), { ...base, type, amount, note: $("t_note").value.trim() });
+    const li = lateInfo(month, date, type);
+    if (li && $("t_fee").checked)
+      b.set(doc(collection(db, "transactions")), { ...base, type: "late_fee", amount: li.fee, note: `${li.days} દિવસ મોડી ચૂકવણીનો દંડ` });
+    await b.commit(); await syncSummary();
+    toast("✅ એન્ટ્રી સેવ થઈ."); resetEntry();
+  } catch (err) { toast("સેવ ન થયું: " + err.message, "err"); }
+  loading(false);
+};
+
+/* ---------- Ledger actions ---------- */
+["lf_search", "lf_type", "lf_month"].forEach(i => { $(i).oninput = $(i).onchange = () => $("adminTable").innerHTML = ledgerTable(filteredAdminTxs(), { admin: true }); });
+$("lf_type").innerHTML = typeOptions("", "બધા પ્રકાર");
+$("lf_clear").onclick = () => { $("lf_search").value = ""; $("lf_type").value = ""; $("lf_month").value = ""; renderAdmin(); };
+$("e_type").innerHTML = typeOptions("");
+
+$("adminTable").onclick = async e => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const t = txs.find(x => x.id === b.dataset.id); if (!t) return;
+  if (b.dataset.act === "del") {
+    const ok = await confirmBox("એન્ટ્રી કાઢી નાખવી છે?", `<b>${esc(t.memberName)}</b> — ${TYPES[t.type]?.label} — ${fmt(t.amount)} (${esc(t.date)})<br><span class="text-rose-600">આ ક્રિયા પાછી લઈ શકાશે નહીં.</span>`, "હા, કાઢી નાખો");
+    if (!ok) return;
+    loading(true);
+    try { await deleteDoc(doc(db, "transactions", t.id)); await syncSummary(); toast("✅ એન્ટ્રી કાઢી નાખી."); }
+    catch (err) { toast(err.message, "err"); }
+    loading(false);
+  } else if (b.dataset.act === "edit") {
+    $("e_id").value = t.id; $("e_member").innerHTML = memberOptions(t.memberId, false); $("e_month").value = t.month;
+    $("e_date").value = t.date; $("e_type").value = t.type; $("e_amount").value = t.amount; $("e_note").value = t.note || "";
+    openModal("editModal");
+  } else whatsapp(t);
+};
+$("editForm").onsubmit = async e => {
+  e.preventDefault();
+  const m = members.find(x => x.id === $("e_member").value); const amount = +$("e_amount").value;
+  if (!m || !(amount > 0)) return toast("માહિતી તપાસો.", "err");
+  loading(true);
+  try {
+    await updateDoc(doc(db, "transactions", $("e_id").value), { memberId: m.id, memberName: m.name, memberEmail: m.email,
+      month: $("e_month").value, date: $("e_date").value, type: $("e_type").value, amount, note: $("e_note").value.trim() });
+    await syncSummary(); closeModal("editModal"); toast("✅ એન્ટ્રી અપડેટ થઈ.");
+  } catch (err) { toast(err.message, "err"); }
+  loading(false);
+};
+
+function whatsapp(t) {
+  const m = members.find(x => x.id === t.memberId);
+  if (!m?.mobile) return toast("સભ્યનો મોબાઈલ નંબર ઉપલબ્ધ નથી.", "err");
+  const s = computeSummary(memberTxs(t.memberId));
+  const msg = `🏦 *${settings.name}*\n\nસભ્યનું નામ: ${t.memberName}\nતારીખ / મહિનો: ${t.date} / ${t.month}\nવિગત: ${TYPES[t.type]?.label}${t.note ? " (" + t.note + ")" : ""}\nરકમ: ${fmt(t.amount)}\n\nકુલ બચત બેલેન્સ: ${fmt(s.savings)}\nબાકી લોન બેલેન્સ: ${fmt(s.loans)}\n\nઆભાર 🙏`;
+  window.open(`https://wa.me/91${m.mobile}?text=${encodeURIComponent(msg)}`, "_blank");
+}
+
+/* ---------- Bulk interest ---------- */
+$("bi_btn").onclick = async () => {
+  const month = $("bi_month").value;
+  if (!month) return toast("મહિનો પસંદ કરો.", "err");
+  const rows = [], skipped = [];
+  for (const m of members) {
+    const bal = loanBalance(m.id); if (bal <= 0) continue;
+    if (txs.some(t => t.memberId === m.id && t.type === "interest" && t.month === month)) { skipped.push(m.name); continue; }
+    rows.push({ m, bal, amt: r2(bal * settings.interestRate / 100) });
+  }
+  if (!rows.length) return toast(skipped.length ? "બધા સભ્યોનું આ મહિનાનું વ્યાજ પહેલેથી નોંધાયેલું છે." : "કોઈ સભ્યની બાકી લોન નથી.", "warn");
+  const total = rows.reduce((a, r) => a + r.amt, 0);
+  const html = `<table class="w-full text-sm"><thead class="bg-slate-100"><tr><th class="p-1 text-left">સભ્ય</th><th class="p-1 text-right">બાકી લોન</th><th class="p-1 text-right">વ્યાજ</th></tr></thead><tbody>` +
+    rows.map(r => `<tr class="border-b"><td class="p-1">${esc(r.m.name)}</td><td class="p-1 text-right">${fmt(r.bal)}</td><td class="p-1 text-right font-semibold">${fmt(r.amt)}</td></tr>`).join("") +
+    `</tbody></table><div class="mt-2 font-bold">કુલ વ્યાજ: ${fmt(total)} (${settings.interestRate}% / માસ) — મહિનો: ${esc(month)}</div>` +
+    (skipped.length ? `<div class="mt-1 text-amber-700 text-xs">છોડી દીધેલા (પહેલેથી નોંધાયેલ): ${skipped.map(esc).join(", ")}</div>` : "");
+  if (!await confirmBox("માસિક વ્યાજ એન્ટ્રી કન્ફર્મ કરો", html, "✅ એન્ટ્રી ઉમેરો")) return;
+  loading(true);
+  try {
+    for (let i = 0; i < rows.length; i += 400) {
+      const b = writeBatch(db);
+      rows.slice(i, i + 400).forEach(r => b.set(doc(collection(db, "transactions")), {
+        memberId: r.m.id, memberName: r.m.name, memberEmail: r.m.email, month, date: todayStr(), type: "interest", amount: r.amt,
+        note: `${fmt(r.bal)} બાકી લોન પર ${settings.interestRate}% લેખે વ્યાજ`, createdAt: serverTimestamp() }));
+      await b.commit();
+    }
+    await syncSummary(); toast(`✅ ${rows.length} સભ્યોનું વ્યાજ ઉમેરાયું.`);
+  } catch (err) { toast("નિષ્ફળ: " + err.message, "err"); }
+  loading(false);
+};
+$("bi_month").value = monthStr();
+
+/* ---------- Dividend ---------- */
+$("dv_btn").onclick = async () => {
+  const label = $("dv_label").value.trim();
+  if (!label) return toast("નાણાકીય વર્ષ / લેબલ દાખલ કરો (દા.ત. 2025-26).", "err");
+  const d = dividendFigures(); const act = members.filter(m => m.status === "active");
+  if (!act.length) return toast("કોઈ સક્રિય સભ્ય નથી.", "err");
+  if (d.per <= 0) return toast("વહેંચવા માટે પૂરતો નફો ઉપલબ્ધ નથી.", "warn");
+  const dup = txs.some(t => t.type === "dividend" && (t.note || "").includes(label));
+  const html = `વહેંચવા પાત્ર નફો: <b>${fmt(d.pool)}</b><br>સક્રિય સભ્યો: <b>${d.n}</b><br>સભ્ય દીઠ ડિવિડન્ડ: <b>${fmt(d.per)}</b><br>કુલ વહેંચણી: <b>${fmt(d.per * d.n)}</b> (બાકી રહેશે ${fmt(d.rem)})` +
+    (dup ? `<div class="mt-2 p-2 bg-rose-50 text-rose-700 rounded">⚠️ "${esc(label)}" માટે ડિવિડન્ડ પહેલેથી વહેંચાયેલું જણાય છે!</div>` : "");
+  if (!await confirmBox(`ડિવિડન્ડ વહેંચણી — ${label}`, html, "🎉 વહેંચો")) return;
+  loading(true);
+  try {
+    const b = writeBatch(db);
+    act.forEach(m => b.set(doc(collection(db, "transactions")), { memberId: m.id, memberName: m.name, memberEmail: m.email,
+      month: monthStr(), date: todayStr(), type: "dividend", amount: d.per, note: `વાર્ષિક ડિવિડન્ડ ${label}`, createdAt: serverTimestamp() }));
+    await b.commit(); await syncSummary(); $("dv_label").value = ""; toast("✅ ડિવિડન્ડ વહેંચાયું.");
+  } catch (err) { toast("નિષ્ફળ: " + err.message, "err"); }
+  loading(false);
+};
+
+/* ---------- CSV export ---------- */
+function downloadCSV(name, rows) {
+  const csv = rows.map(r => r.map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\r\n");
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+$("exp_members").onclick = () => {
+  if (!members.length) return toast("કોઈ ડેટા ઉપલબ્ધ નથી.", "warn");
+  const rows = [["સભ્યનું નામ", "મોબાઈલ નંબર", "ઈમેલ", "કુલ માસિક જમા (₹)", "મળેલું ડિવિડન્ડ (₹)", "કુલ બચત બેલેન્સ (₹)", "લીધેલી લોન (₹)", "ભરેલા લોન હપ્તા (₹)", "બાકી લોન (₹)", "ભરેલું વ્યાજ અને દંડ (₹)"]];
+  members.forEach(m => { const s = computeSummary(memberTxs(m.id));
+    rows.push([m.name, m.mobile, m.email, s.deposits, s.dividends, s.savings, s.disbursed, s.repaid, s.loans, r2(s.interest + s.fees)]); });
+  downloadCSV(`members_balance_${todayStr()}.csv`, rows);
+};
+$("exp_tx").onclick = () => {
+  const list = filteredAdminTxs(); if (!list.length) return toast("કોઈ ડેટા ઉપલબ્ધ નથી.", "warn");
+  downloadCSV(`transactions_${todayStr()}.csv`, [["ચૂકવણી તારીખ", "મહિનો", "સભ્યનું નામ", "પ્રકાર", "રકમ (₹)", "નોંધ"],
+    ...list.map(t => [t.date, t.month, t.memberName, TYPES[t.type]?.label || t.type, t.amount, t.note || ""])]);
+};
+
+/* ---------- Init ---------- */
+renderPublic();
+resetEntry();
+setTimeout(() => loading(false), 8000);
+</script>
+</body>
+</html>
