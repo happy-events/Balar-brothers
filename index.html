@@ -100,7 +100,6 @@
       <button class="tab-btn" data-tab="tLedger">📒 ખાતાવહી</button>
       <button class="tab-btn" data-tab="tMembers">👥 સભ્યો</button>
       <button class="tab-btn" data-tab="tInterest">⚡ માસિક વ્યાજ</button>
-      <button class="tab-btn" data-tab="tDividend">🎉 ડિવિડન્ડ</button>
       <button class="tab-btn" data-tab="tReports">📥 રિપોર્ટ</button>
       <button class="tab-btn" data-tab="tSettings">⚙️ સેટિંગ્સ</button>
     </div>
@@ -161,16 +160,6 @@
         <button id="bi_btn" class="btn bg-amber-600">⚡ બધા સભ્યોનું માસિક વ્યાજ ગણો</button>
       </div>
       <p class="text-xs text-slate-500 mt-2">જે સભ્યનું તે મહિનાનું વ્યાજ પહેલેથી નોંધાયેલું હશે તેમને છોડી દેવામાં આવશે.</p>
-    </div>
-
-    <!-- Dividend -->
-    <div id="tDividend" class="tabpane card p-5 hidden">
-      <h3 class="font-bold mb-3">વાર્ષિક નફો અને ડિવિડન્ડ વહેંચણી</h3>
-      <div id="divStats" class="grid sm:grid-cols-3 gap-3 mb-4"></div>
-      <div class="flex flex-wrap items-end gap-3">
-        <div><label class="lbl">નાણાકીય વર્ષ (દા.ત. 2025-26)</label><input id="dv_label" class="inp" placeholder="2025-26"></div>
-        <button id="dv_btn" class="btn bg-emerald-600">🎉 બધા સભ્યોને ડિવિડન્ડ વહેંચો</button>
-      </div>
     </div>
 
     <!-- Reports -->
@@ -289,9 +278,9 @@ const TYPES = {
   loan_repay: { label: "લોન હપ્તો",       cls: "bg-blue-100 text-blue-800" },
   interest:   { label: "વ્યાજ",            cls: "bg-amber-100 text-amber-800" },
   late_fee:   { label: "દંડ (Late Fee)",   cls: "bg-orange-100 text-orange-800" },
-  dividend:   { label: "વાર્ષિક ડિવિડન્ડ", cls: "bg-purple-100 text-purple-800" }
 };
-const badge = t => `<span class="px-2 py-0.5 rounded-full text-xs font-semibold ${TYPES[t]?.cls || "bg-slate-100"}">${TYPES[t]?.label || esc(t)}</span>`;
+const OLD_TYPES = { dividend: { label: "વાર્ષિક ડિવિડન્ડ", cls: "bg-purple-100 text-purple-800" } };
+const badge = t => `<span class="px-2 py-0.5 rounded-full text-xs font-semibold ${(TYPES[t]||OLD_TYPES[t])?.cls || "bg-slate-100"}">${(TYPES[t]||OLD_TYPES[t])?.label || esc(t)}</span>`;
 
 const DEFAULTS = { name: "બચત મંડળ", sub: "", monthlySavings: 500, interestRate: 1, dueDay: 10,
   lateFeeType: "fixed", lateFeeAmount: 50, rules: "" };
@@ -370,7 +359,7 @@ function renderPublic() {
     card("કુલ ફંડ બેલેન્સ", s.net, "border-indigo-500", "🏦") +
     card("કુલ જમા બચત", s.savings, "border-emerald-500", "💰") +
     card("કુલ બાકી લોન", s.loans, "border-rose-500", "📤") +
-    card("વણવહેંચાયેલ નફો (વ્યાજ + દંડ)", s.pool, "border-amber-500", "📈");
+    card("કુલ નફો (વ્યાજ + દંડ)", s.pool, "border-amber-500", "📈");
 
   const ft = settings.lateFeeType === "per_day" ? `₹${settings.lateFeeAmount} પ્રતિ દિવસ` : `₹${settings.lateFeeAmount} ફિક્સ`;
   const item = (t, v) => `<div class="bg-slate-50 rounded-xl p-3 border border-slate-200"><div class="text-xs text-slate-500">${t}</div><div class="font-bold text-slate-800 mt-1">${v}</div></div>`;
@@ -414,10 +403,10 @@ function renderMember() {
   const est = r2(Math.max(s.loans, 0) * (+settings.interestRate / 100));
   const c = (t, v, cl) => `<div class="card p-4 border-l-4 ${cl}"><div class="text-xs text-slate-500 font-semibold">${t}</div><div class="text-xl font-bold mt-1">${fmt(v)}</div></div>`;
   $("memberCards").innerHTML =
-    c("💰 કુલ બચત + ડિવિડન્ડ", s.savings, "border-emerald-500") +
+    c("💰 કુલ બચત", s.savings, "border-emerald-500") +
     c("📤 બાકી લોન", s.loans, "border-rose-500") +
     c("🗓️ આગામી માસિક વ્યાજ (અંદાજિત)", est, "border-amber-500") +
-    c("🎉 કુલ મળેલું ડિવિડન્ડ", s.dividends, "border-purple-500");
+    c("🧾 કુલ ભરેલું વ્યાજ + દંડ", s.interest + s.fees, "border-purple-500");
   $("memberTitle").textContent = myMember ? `${myMember.name} નો હિસાબ` : "મારો હિસાબ";
   $("prName").textContent = settings.name; $("prMember").textContent = myMember?.name || user?.email || "";
   $("prDate").textContent = todayStr();
@@ -442,7 +431,6 @@ function renderAdmin() {
   $("t_member").innerHTML = memberOptions(keepM, true);
   $("adminTable").innerHTML = ledgerTable(filteredAdminTxs(), { admin: true });
   renderMemberList();
-  renderDividendStats();
 }
 function renderMemberList() {
   if (!members.length) { $("memberListTable").innerHTML = `<tbody><tr><td class="p-6 text-center text-slate-500">કોઈ ડેટા ઉપલબ્ધ નથી</td></tr></tbody>`; return; }
@@ -453,19 +441,6 @@ function renderMemberList() {
       <td class="p-2 text-right">${fmt(s.savings)}</td><td class="p-2 text-right">${fmt(s.loans)}</td>
       <td class="p-2 whitespace-nowrap"><button data-mact="edit" data-id="${m.id}" class="px-2 py-1 rounded bg-blue-500 text-white text-xs font-semibold">ફેરફાર</button>
       <button data-mact="toggle" data-id="${m.id}" class="px-2 py-1 rounded bg-slate-600 text-white text-xs font-semibold">${m.status === "active" ? "નિષ્ક્રિય કરો" : "સક્રિય કરો"}</button></td></tr>`; }).join("") + `</tbody>`;
-}
-function dividendFigures() {
-  const s = computeSummary(txs);
-  const n = members.filter(m => m.status === "active").length;
-  const pool = Math.max(s.pool, 0);
-  const per = n ? Math.floor(pool / n) : 0;
-  return { pool: s.pool, n, per, rem: n ? r2(pool - per * n) : pool };
-}
-function renderDividendStats() {
-  const d = dividendFigures();
-  const c = (t, v) => `<div class="bg-slate-50 border rounded-xl p-3"><div class="text-xs text-slate-500">${t}</div><div class="font-bold text-lg">${v}</div></div>`;
-  $("divStats").innerHTML = c("કુલ વહેંચવા પાત્ર નફો", fmt(d.pool)) + c("કુલ સક્રિય સભ્યો", d.n) +
-    c("સભ્ય દીઠ મળવાપાત્ર ડિવિડન્ડ", `${fmt(d.per)} <span class="text-xs font-normal text-slate-500">(બાકી રહેતી રકમ ${fmt(d.rem)})</span>`);
 }
 function fillSettingsForm() {
   $("s_name").value = settings.name; $("s_sub").value = settings.sub || "";
@@ -640,6 +615,7 @@ $("entryForm").onsubmit = async e => {
   const amount = +$("t_amount").value, type = $("t_type").value;
   if (!m) return toast("કૃપા કરીને સભ્ય પસંદ કરો.", "err");
   if (!(amount > 0)) return toast("માન્ય રકમ દાખલ કરો.", "err");
+  if (type === "interest" && loanBalance(m.id) <= 0) return toast("આ સભ્યની કોઈ બાકી લોન નથી, તેથી વ્યાજ ઉમેરી શકાય નહીં.", "err");
   const month = $("t_month").value, date = $("t_date").value;
   if (!month || !date) return toast("મહિનો અને તારીખ દાખલ કરો.", "err");
   const base = { memberId: m.id, memberName: m.name, memberEmail: m.email, month, date, createdAt: serverTimestamp() };
@@ -731,27 +707,6 @@ $("bi_btn").onclick = async () => {
 };
 $("bi_month").value = monthStr();
 
-/* ---------- Dividend ---------- */
-$("dv_btn").onclick = async () => {
-  const label = $("dv_label").value.trim();
-  if (!label) return toast("નાણાકીય વર્ષ / લેબલ દાખલ કરો (દા.ત. 2025-26).", "err");
-  const d = dividendFigures(); const act = members.filter(m => m.status === "active");
-  if (!act.length) return toast("કોઈ સક્રિય સભ્ય નથી.", "err");
-  if (d.per <= 0) return toast("વહેંચવા માટે પૂરતો નફો ઉપલબ્ધ નથી.", "warn");
-  const dup = txs.some(t => t.type === "dividend" && (t.note || "").includes(label));
-  const html = `વહેંચવા પાત્ર નફો: <b>${fmt(d.pool)}</b><br>સક્રિય સભ્યો: <b>${d.n}</b><br>સભ્ય દીઠ ડિવિડન્ડ: <b>${fmt(d.per)}</b><br>કુલ વહેંચણી: <b>${fmt(d.per * d.n)}</b> (બાકી રહેશે ${fmt(d.rem)})` +
-    (dup ? `<div class="mt-2 p-2 bg-rose-50 text-rose-700 rounded">⚠️ "${esc(label)}" માટે ડિવિડન્ડ પહેલેથી વહેંચાયેલું જણાય છે!</div>` : "");
-  if (!await confirmBox(`ડિવિડન્ડ વહેંચણી — ${label}`, html, "🎉 વહેંચો")) return;
-  loading(true);
-  try {
-    const b = writeBatch(db);
-    act.forEach(m => b.set(doc(collection(db, "transactions")), { memberId: m.id, memberName: m.name, memberEmail: m.email,
-      month: monthStr(), date: todayStr(), type: "dividend", amount: d.per, note: `વાર્ષિક ડિવિડન્ડ ${label}`, createdAt: serverTimestamp() }));
-    await b.commit(); await syncSummary(); $("dv_label").value = ""; toast("✅ ડિવિડન્ડ વહેંચાયું.");
-  } catch (err) { toast("નિષ્ફળ: " + err.message, "err"); }
-  loading(false);
-};
-
 /* ---------- CSV export ---------- */
 function downloadCSV(name, rows) {
   const csv = rows.map(r => r.map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\r\n");
@@ -761,9 +716,9 @@ function downloadCSV(name, rows) {
 }
 $("exp_members").onclick = () => {
   if (!members.length) return toast("કોઈ ડેટા ઉપલબ્ધ નથી.", "warn");
-  const rows = [["સભ્યનું નામ", "મોબાઈલ નંબર", "ઈમેલ", "કુલ માસિક જમા (₹)", "મળેલું ડિવિડન્ડ (₹)", "કુલ બચત બેલેન્સ (₹)", "લીધેલી લોન (₹)", "ભરેલા લોન હપ્તા (₹)", "બાકી લોન (₹)", "ભરેલું વ્યાજ અને દંડ (₹)"]];
+  const rows = [["સભ્યનું નામ", "મોબાઈલ નંબર", "ઈમેલ", "કુલ બચત બેલેન્સ (₹)", "લીધેલી લોન (₹)", "ભરેલા લોન હપ્તા (₹)", "બાકી લોન (₹)", "ભરેલું વ્યાજ અને દંડ (₹)"]];
   members.forEach(m => { const s = computeSummary(memberTxs(m.id));
-    rows.push([m.name, m.mobile, m.email, s.deposits, s.dividends, s.savings, s.disbursed, s.repaid, s.loans, r2(s.interest + s.fees)]); });
+    rows.push([m.name, m.mobile, m.email, s.savings, s.disbursed, s.repaid, s.loans, r2(s.interest + s.fees)]); });
   downloadCSV(`members_balance_${todayStr()}.csv`, rows);
 };
 $("exp_tx").onclick = () => {
