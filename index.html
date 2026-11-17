@@ -46,7 +46,8 @@
     </div>
     <div class="flex items-center gap-2 shrink-0">
       <span id="navUser" class="hidden sm:inline text-xs text-indigo-100"></span>
-      <button id="btnLogin" class="btn bg-white !text-indigo-700">🔐 લોગીન કરો</button>
+      <button id="btnRegister" class="btn bg-emerald-500">📝 રજીસ્ટર</button>
+      <button id="btnLogin" class="btn bg-white !text-indigo-700">🔐 લોગીન</button>
       <button id="btnLogout" class="btn bg-rose-500 hidden">લોગ આઉટ</button>
     </div>
   </div>
@@ -54,23 +55,26 @@
 
 <main class="max-w-6xl mx-auto px-4 py-5 space-y-6">
 
-  <!-- Summary cards -->
-  <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 no-print" id="summaryCards"></section>
+  <!-- Summary cards (બધા માટે દેખાય છે: મહેમાન, સભ્ય અને એડમિન) -->
+  <section class="grid grid-cols-2 lg:grid-cols-3 gap-3 no-print" id="summaryCards"></section>
 
   <!-- Rules board -->
   <section class="card p-5 no-print">
     <h2 class="text-lg font-bold text-slate-800 mb-3">📜 મંડળના નિયમો અને નીતિ-નિયમો</h2>
-    <div id="rulesBoard" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3"></div>
+    <div id="rulesBoard" class="grid sm:grid-cols-3 gap-3"></div>
     <div id="rulesCustom" class="mt-4"></div>
   </section>
 
   <!-- Guest hint -->
   <section id="guestHint" class="card p-5 text-center text-slate-600 no-print">
-    સભ્યો પોતાનો હિસાબ જોવા માટે ઉપર <b>"લોગીન કરો"</b> બટન દબાવો.
+    સભ્યો પોતાનો હિસાબ જોવા માટે ઉપર <b>"લોગીન"</b> બટન દબાવો. નવા સભ્ય હોય તો <b>"રજીસ્ટર"</b> બટન દબાવી ખાતું બનાવો.
   </section>
 
   <!-- Member dashboard -->
   <section id="memberView" class="hidden space-y-4">
+    <div id="pendingBanner" class="hidden bg-amber-50 border border-amber-300 text-amber-900 rounded-xl p-3 text-sm font-semibold no-print">
+      ⏳ તમારી નોંધણી એડમિનની મંજૂરી માટે બાકી છે. મંજૂરી મળ્યા પછી તમે સક્રિય સભ્ય ગણાશો.
+    </div>
     <div id="printArea" class="space-y-4">
       <div class="hidden print:block text-center">
         <div id="prName" class="text-xl font-bold"></div>
@@ -80,7 +84,7 @@
         <h2 class="text-lg font-bold text-slate-800">👤 <span id="memberTitle">મારો હિસાબ</span></h2>
         <button onclick="window.print()" class="btn bg-slate-700">🖨️ પ્રિન્ટ / સ્ટેટમેન્ટ ડાઉનલોડ</button>
       </div>
-      <div id="memberCards" class="grid grid-cols-2 lg:grid-cols-4 gap-3"></div>
+      <div id="memberCards" class="grid grid-cols-2 lg:grid-cols-5 gap-3"></div>
       <div class="card p-4">
         <div class="flex flex-wrap gap-2 mb-3 no-print">
           <select id="mf_type" class="inp !w-auto"></select>
@@ -98,7 +102,7 @@
     <div class="flex gap-2 overflow-x-auto pb-1" id="adminTabs">
       <button class="tab-btn active" data-tab="tEntry">➕ નવી એન્ટ્રી</button>
       <button class="tab-btn" data-tab="tLedger">📒 ખાતાવહી</button>
-      <button class="tab-btn" data-tab="tMembers">👥 સભ્યો</button>
+      <button class="tab-btn" data-tab="tMembers">👥 સભ્યો <span id="pendCount" class="hidden ml-1 px-1.5 py-0.5 rounded-full bg-amber-400 text-white text-xs"></span></button>
       <button class="tab-btn" data-tab="tInterest">⚡ માસિક વ્યાજ</button>
       <button class="tab-btn" data-tab="tReports">📥 રિપોર્ટ</button>
       <button class="tab-btn" data-tab="tSettings">⚙️ સેટિંગ્સ</button>
@@ -114,10 +118,6 @@
         <div><label class="lbl">વ્યવહારનો પ્રકાર *</label><select id="t_type" class="inp" required></select></div>
         <div><label class="lbl">રકમ (₹) *</label><input id="t_amount" type="number" min="0" step="0.01" class="inp" required></div>
         <div><label class="lbl">નોંધ</label><input id="t_note" type="text" class="inp"></div>
-        <div id="lateBox" class="sm:col-span-2 hidden bg-yellow-50 border border-yellow-300 rounded-xl p-3 text-yellow-900">
-          <div id="lateMsg" class="font-semibold text-sm"></div>
-          <label class="flex items-center gap-2 mt-2 text-sm"><input id="t_fee" type="checkbox" checked class="w-4 h-4"> આપમેળે દંડ (Late Fee) ની અલગ એન્ટ્રી પણ સાથે ઉમેરો</label>
-        </div>
         <div class="sm:col-span-2"><button class="btn bg-indigo-600 w-full sm:w-auto" type="submit">💾 એન્ટ્રી સેવ કરો</button></div>
       </form>
     </div>
@@ -144,14 +144,14 @@
         <div><label class="lbl">મોબાઈલ * (10 અંક)</label><input id="m_mobile" class="inp" inputmode="numeric" maxlength="10" required></div>
         <div><label class="lbl">કેટલા નામ ઉમેરવાના છે? *</label><input id="m_shares" type="number" min="1" max="50" value="1" class="inp" required></div>
         <div class="sm:col-span-2"><label class="lbl">બધા નામ (વૈકલ્પિક, અલ્પવિરામથી જુદા)</label><input id="m_names" class="inp" placeholder="દા.ત. ડેનિશ, રાજ, કિરણ, મીના"></div>
-        <div><label class="lbl">સ્થિતિ</label><select id="m_status" class="inp"><option value="active">સક્રિય</option><option value="inactive">નિષ્ક્રિય</option></select></div>
+        <div><label class="lbl">સ્થિતિ</label><select id="m_status" class="inp"><option value="active">સક્રિય</option><option value="pending">પ્રતીક્ષામાં</option><option value="inactive">નિષ્ક્રિય</option></select></div>
         <div id="m_hint" class="sm:col-span-4 text-xs text-slate-500"></div>
         <div class="sm:col-span-4 flex gap-2">
           <button class="btn bg-indigo-600" type="submit">💾 સેવ કરો</button>
           <button type="button" id="m_cancel" class="btn bg-slate-500 hidden">રદ કરો</button>
         </div>
       </form>
-      <p class="text-xs text-slate-500 mb-2">નોંધ: સભ્યને લોગીન આપવા માટે Firebase Console → Authentication માં આ જ ઈમેલથી યુઝર બનાવો.</p>
+      <p class="text-xs text-slate-500 mb-2">નોંધ: સભ્યો પોતે ઉપરના <b>"રજીસ્ટર"</b> બટનથી ખાતું બનાવી શકે છે — તે "પ્રતીક્ષામાં" દેખાશે, તમે <b>"મંજૂર કરો"</b> દબાવશો એટલે સક્રિય થશે. તમે અહીંથી સભ્ય પહેલેથી ઉમેરો તો સભ્યે એ જ ઈમેલથી રજીસ્ટર કરી પાસવર્ડ બનાવવાનો રહેશે. Firebase Console માં કંઈ કરવાની જરૂર નથી.</p>
       <div class="overflow-x-auto"><table class="w-full text-sm" id="memberListTable"></table></div>
     </div>
 
@@ -182,12 +182,9 @@
         <div><label class="lbl">મંડળનું નામ</label><input id="s_name" class="inp" required></div>
         <div><label class="lbl">સબટાઈટલ / સંપર્ક વિગત</label><input id="s_sub" class="inp"></div>
         <div><label class="lbl">માસિક ફરજિયાત બચત રકમ (₹)</label><input id="s_save" type="number" min="0" class="inp" required></div>
-        <div><label class="lbl">લોનનો માસિક વ્યાજ દર (%)</label><input id="s_rate" type="number" min="0" step="0.01" class="inp" required></div>
+        <div><label class="lbl">ઉપાડ પર માસિક વ્યાજ દર (%)</label><input id="s_rate" type="number" min="0" step="0.01" class="inp" required></div>
         <div><label class="lbl">હપ્તો ભરવાની નિયત તારીખ (1 થી 28)</label><input id="s_due" type="number" min="1" max="28" class="inp" required></div>
-        <div><label class="lbl">દંડનો પ્રકાર</label>
-          <select id="s_ftype" class="inp"><option value="fixed">ફિક્સ રકમ</option><option value="per_day">પ્રતિ દિવસ</option></select></div>
-        <div><label class="lbl">દંડની રકમ (₹)</label><input id="s_famt" type="number" min="0" class="inp" required></div>
-        <div class="sm:col-span-2"><label class="lbl">લોન મર્યાદા અને અન્ય નિયમો (દરેક લીટી એક મુદ્દો)</label><textarea id="s_rules" rows="5" class="inp"></textarea></div>
+        <div class="sm:col-span-2"><label class="lbl">ઉપાડ મર્યાદા અને અન્ય નિયમો (દરેક લીટી એક મુદ્દો)</label><textarea id="s_rules" rows="5" class="inp"></textarea></div>
         <div class="sm:col-span-2"><button class="btn bg-indigo-600" type="submit">💾 સેટિંગ્સ સેવ કરો</button></div>
       </form>
     </div>
@@ -206,7 +203,35 @@
       <button type="button" id="forgotBtn" class="text-sm text-indigo-600 font-semibold">🔑 પાસવર્ડ ભૂલી ગયા છો?</button>
       <div id="loginMsg" class="text-sm hidden"></div>
       <button class="btn bg-indigo-600 w-full" type="submit">લોગીન કરો</button>
+      <div class="text-center pt-1"><button type="button" id="toRegister" class="text-sm text-emerald-700 font-semibold">📝 નવા સભ્ય? અહીં રજીસ્ટર કરો</button></div>
     </form>
+  </div>
+</div>
+
+<!-- Register modal -->
+<div id="registerModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 no-print">
+  <div class="card w-full max-w-md p-5 max-h-[92vh] overflow-y-auto">
+    <div class="flex justify-between items-center mb-3"><h3 class="font-bold text-lg">📝 નવા સભ્ય રજીસ્ટ્રેશન</h3><button onclick="closeModal('registerModal')" class="text-2xl leading-none">&times;</button></div>
+    <form id="registerForm" class="space-y-3">
+      <div><label class="lbl">પૂરું નામ *</label><input id="r_name" class="inp" required autocomplete="name"></div>
+      <div><label class="lbl">ઈમેલ * (આ જ તમારો લોગીન ઈમેલ)</label><input id="r_email" type="email" class="inp" required autocomplete="email"></div>
+      <div><label class="lbl">મોબાઈલ * (10 અંક)</label><input id="r_mobile" class="inp" inputmode="numeric" maxlength="10" required autocomplete="tel"></div>
+      <div><label class="lbl">કેટલા નામ ઉમેરવાના છે? *</label><input id="r_shares" type="number" min="1" max="50" value="1" class="inp" required></div>
+      <div><label class="lbl">પાસવર્ડ * (ઓછામાં ઓછા 6 અક્ષર)</label><input id="r_pass" type="password" class="inp" required minlength="6" autocomplete="new-password"></div>
+      <div><label class="lbl">પાસવર્ડ ફરી લખો *</label><input id="r_pass2" type="password" class="inp" required minlength="6" autocomplete="new-password"></div>
+      <div id="registerMsg" class="text-sm hidden"></div>
+      <p class="text-xs text-slate-500">રજીસ્ટર કર્યા પછી એડમિન મંજૂરી આપશે ત્યારે તમે સક્રિય સભ્ય ગણાશો.</p>
+      <button class="btn bg-emerald-600 w-full" type="submit">રજીસ્ટર કરો</button>
+      <div class="text-center pt-1"><button type="button" id="toLogin" class="text-sm text-indigo-600 font-semibold">🔐 પહેલેથી ખાતું છે? લોગીન કરો</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- Members list popup -->
+<div id="membersModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 no-print">
+  <div class="card w-full max-w-md p-5 max-h-[90vh] flex flex-col">
+    <div class="flex justify-between items-center mb-3"><h3 class="font-bold text-lg">👥 મંડળના સભ્યો અને નામ</h3><button onclick="closeModal('membersModal')" class="text-2xl leading-none">&times;</button></div>
+    <div id="membersModalBody" class="overflow-y-auto text-sm"></div>
   </div>
 </div>
 
@@ -257,7 +282,7 @@ const ADMIN_EMAIL = "ankitbalar01@gmail.com";
 /* ============================================================ */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail }
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, addDoc, updateDoc, deleteDoc, getDocs, onSnapshot,
   query, where, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -276,24 +301,32 @@ const monthStr = () => todayStr().slice(0, 7);
 const lc = s => String(s || "").trim().toLowerCase();
 
 const TYPES = {
-  deposit:    { label: "માસિક જમા",       cls: "bg-emerald-100 text-emerald-800" },
-  loan_out:   { label: "લોન ઉપાડ",        cls: "bg-rose-100 text-rose-800" },
-  loan_repay: { label: "લોન હપ્તો",       cls: "bg-blue-100 text-blue-800" },
-  interest:   { label: "વ્યાજ",            cls: "bg-amber-100 text-amber-800" },
-  late_fee:   { label: "દંડ (Late Fee)",   cls: "bg-orange-100 text-orange-800" },
+  deposit:    { label: "માસિક જમા (બચત)",   cls: "bg-emerald-100 text-emerald-800" },
+  loan_out:   { label: "ઉપાડ",               cls: "bg-rose-100 text-rose-800" },
+  loan_repay: { label: "ઉપાડ પરત / હપ્તો",   cls: "bg-blue-100 text-blue-800" },
+  interest:   { label: "વ્યાજ",              cls: "bg-amber-100 text-amber-800" },
 };
 const OLD_TYPES = { dividend: { label: "વાર્ષિક ડિવિડન્ડ", cls: "bg-purple-100 text-purple-800" } };
 const badge = t => `<span class="px-2 py-0.5 rounded-full text-xs font-semibold ${(TYPES[t]||OLD_TYPES[t])?.cls || "bg-slate-100"}">${(TYPES[t]||OLD_TYPES[t])?.label || esc(t)}</span>`;
+const STATUS = {
+  active:   ["bg-emerald-100 text-emerald-800", "સક્રિય"],
+  pending:  ["bg-amber-100 text-amber-800", "પ્રતીક્ષામાં"],
+  inactive: ["bg-slate-200 text-slate-600", "નિષ્ક્રિય"],
+};
 
-const DEFAULTS = { name: "બચત મંડળ", sub: "", monthlySavings: 500, interestRate: 1, dueDay: 10,
-  lateFeeType: "fixed", lateFeeAmount: 50, rules: "" };
+// ઉપાડનો ચિઠ્ઠી નિયમ (બધાને દેખાય છે)
+const LOTTERY_RULE = "જ્યારે મંડળ પાસે બેલેન્સ મર્યાદિત હોય અને ઉપાડ માટે વધારે સભ્યો હોય, ત્યારે ચિઠ્ઠી ઉડાડીને નક્કી કરવામાં આવશે કે કોને ઉપાડ મળશે.";
+
+const DEFAULTS = { name: "બચત મંડળ", sub: "", monthlySavings: 500, interestRate: 1, dueDay: 10, rules: "" };
 
 let settings = { ...DEFAULTS };
 let summary = null;
 let user = null, isAdmin = false;
 let members = [], txs = [];       // admin data
+let membersLoaded = false, txsLoaded = false, syncTimer = null;
 let myMember = null, myTxs = [];  // member data
 let unsubs = [];
+let registering = false, warnedNoMember = false;
 
 function toast(msg, type = "ok") {
   const el = document.createElement("div");
@@ -317,38 +350,54 @@ function confirmBox(title, html, yes = "હા, આગળ વધો") {
 }
 
 /* ---------- Calculations ---------- */
+// savings  = કુલ બચત (જમા)
+// loans    = કુલ ઉપાડ (બાકી) = ઉપાડ − પરત ભરેલ
 function computeSummary(list) {
-  let dep = 0, div = 0, out = 0, rep = 0, int = 0, fee = 0;
+  let dep = 0, div = 0, out = 0, rep = 0, int = 0;
   for (const t of list) {
     const a = +t.amount || 0;
     if (t.type === "deposit") dep += a; else if (t.type === "loan_out") out += a;
     else if (t.type === "loan_repay") rep += a; else if (t.type === "interest") int += a;
-    else if (t.type === "late_fee") fee += a; else if (t.type === "dividend") div += a;
+    else if (t.type === "dividend") div += a;
   }
-  const savings = dep + div, loans = out - rep, pool = int + fee - div;
-  // નોંધ: બચતમાં ડિવિડન્ડ પહેલેથી સામેલ છે, તેથી બે વાર ગણાતું નથી
-  return { deposits: dep, dividends: div, disbursed: out, repaid: rep, interest: int, fees: fee,
-    savings, loans, pool, net: savings + pool - loans };
+  return { deposits: dep, dividends: div, disbursed: out, repaid: rep, interest: int, savings: dep + div, loans: out - rep };
 }
 const memberTxs = id => txs.filter(t => t.memberId === id);
-const loanBalance = id => { const s = computeSummary(memberTxs(id)); return s.loans; };
+const loanBalance = id => computeSummary(memberTxs(id)).loans;
 
-function lateInfo(month, payDate, type) {
-  if (!["deposit", "loan_repay"].includes(type) || !month || !payDate) return null;
-  const [y, m] = month.split("-").map(Number);
-  const due = new Date(y, m - 1, +settings.dueDay);
-  const pay = new Date(payDate + "T00:00:00");
-  const days = Math.floor((pay - due) / 864e5);
-  if (days <= 0) return null;
-  const fee = settings.lateFeeType === "per_day" ? days * +settings.lateFeeAmount : +settings.lateFeeAmount;
-  return fee > 0 ? { days, fee } : null;
+/* પબ્લિક સારાંશ: ફક્ત કુલ આંકડા + સભ્યોના નામ અને નામ-સંખ્યા (ઈમેલ/મોબાઈલ નહીં) */
+function buildSummary(ms, list) {
+  const t = computeSummary(list);
+  const act = ms.filter(m => m.status === "active");
+  const savings = r2(t.savings), withdrawn = r2(t.loans);
+  return {
+    members: act.length,
+    names: act.reduce((a, m) => a + (m.shares || 1), 0),
+    savings, withdrawn, available: r2(savings - withdrawn),
+    interest: r2(t.interest), disbursed: r2(t.disbursed), repaid: r2(t.repaid),
+    membersList: act.map(m => ({ name: m.name, shares: m.shares || 1 }))
+  };
 }
+const sumSig = s => [s.members, s.names, s.savings, s.withdrawn, s.available, s.interest, s.disbursed, s.repaid,
+  (s.membersList || []).map(m => m.name + "|" + m.shares).join(";")].join("#");
 
-/* ---------- Summary doc sync (પબ્લિક વાંચન માટે ફક્ત કુલ આંકડા) ---------- */
-async function syncSummary() {
-  const snap = await getDocs(collection(db, "transactions"));
-  const s = computeSummary(snap.docs.map(d => d.data()));
-  await setDoc(doc(db, "public", "summary"), { ...s, updatedAt: serverTimestamp() });
+// એડમિન ડેટા બદલાય ત્યારે public/summary આપમેળે અપડેટ થાય છે
+function scheduleSync() {
+  if (!isAdmin || !membersLoaded || !txsLoaded) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(async () => {
+    const s = buildSummary(members, txs);
+    if (summary && sumSig(summary) === sumSig(s)) return;
+    try { await setDoc(doc(db, "public", "summary"), { ...s, updatedAt: serverTimestamp() }); }
+    catch (e) { console.error(e); toast("સારાંશ અપડેટ ન થયો: " + e.message, "err"); }
+  }, 1200);
+}
+function getSummary() {
+  if (isAdmin && membersLoaded && txsLoaded) return buildSummary(members, txs);
+  const s = summary || {};
+  const savings = s.savings ?? 0, withdrawn = s.withdrawn ?? s.loans ?? 0;
+  return { members: s.members ?? 0, names: s.names ?? 0, savings, withdrawn,
+    available: s.available ?? r2(savings - withdrawn), interest: s.interest ?? 0, membersList: s.membersList || [] };
 }
 
 /* ---------- Render: public ---------- */
@@ -356,25 +405,40 @@ function renderPublic() {
   $("navName").textContent = settings.name || "બચત મંડળ";
   $("navSub").textContent = settings.sub || "";
   document.title = settings.name || "બચત મંડળ";
-  const s = summary || { net: 0, savings: 0, loans: 0, pool: 0 };
-  const card = (t, v, c, icon) => `<div class="card p-4 border-l-4 ${c}"><div class="text-xs text-slate-500 font-semibold">${icon} ${t}</div><div class="text-xl sm:text-2xl font-bold mt-1">${fmt(v)}</div></div>`;
+  const s = getSummary();
+  const cardHtml = (t, v, c, icon, sub = "") => `<div class="card p-4 border-l-4 ${c}"><div class="text-xs text-slate-500 font-semibold">${icon} ${t}</div><div class="text-xl sm:text-2xl font-bold mt-1">${v}</div>${sub ? `<div class="text-[11px] text-slate-400 mt-1">${sub}</div>` : ""}</div>`;
   $("summaryCards").innerHTML =
-    card("કુલ ફંડ બેલેન્સ", s.net, "border-indigo-500", "🏦") +
-    card("કુલ જમા બચત", s.savings, "border-emerald-500", "💰") +
-    card("કુલ બાકી લોન", s.loans, "border-rose-500", "📤") +
-    card("કુલ નફો (વ્યાજ + દંડ)", s.pool, "border-amber-500", "📈");
+    `<button type="button" data-open="members" class="card p-4 border-l-4 border-indigo-500 text-left w-full hover:bg-indigo-50 transition">
+       <div class="text-xs text-slate-500 font-semibold">👥 ટોટલ સભ્ય</div>
+       <div class="text-xl sm:text-2xl font-bold mt-1">${s.members}</div>
+       <div class="text-[11px] text-indigo-600 font-semibold mt-1">👆 સભ્યોની યાદી જોવા ક્લિક કરો</div></button>` +
+    cardHtml("ટોટલ નામ", s.names, "border-sky-500", "🏷️") +
+    cardHtml("ટોટલ બેલેન્સ (બચત)", fmt(s.savings), "border-emerald-500", "💰") +
+    cardHtml("ટોટલ એવૈલબલ બેલેન્સ", fmt(s.available), "border-teal-500", "✅", "ટોટલ બેલેન્સ − ટોટલ ઉપાડ") +
+    cardHtml("ટોટલ ઉપાડ", fmt(s.withdrawn), "border-rose-500", "📤", "પરત ભર્યા પછી બાકી") +
+    cardHtml("ટોટલ વ્યાજ", fmt(s.interest), "border-amber-500", "📈");
 
-  const ft = settings.lateFeeType === "per_day" ? `₹${settings.lateFeeAmount} પ્રતિ દિવસ` : `₹${settings.lateFeeAmount} ફિક્સ`;
   const item = (t, v) => `<div class="bg-slate-50 rounded-xl p-3 border border-slate-200"><div class="text-xs text-slate-500">${t}</div><div class="font-bold text-slate-800 mt-1">${v}</div></div>`;
   $("rulesBoard").innerHTML =
     item("માસિક ફરજિયાત બચત", `${fmt(settings.monthlySavings)} / માસ`) +
     item("માસિક વ્યાજ દર", `${settings.interestRate}% / માસ`) +
     item("હપ્તો ભરવાની નિયત તારીખ", `દર મહિનાની ${settings.dueDay} તારીખ સુધીમાં`) +
-    item("મોડા હપ્તાનો દંડ", ft);
+    `<div class="sm:col-span-3 bg-amber-50 rounded-xl p-3 border border-amber-300"><div class="text-xs text-amber-700 font-semibold">🎲 ઉપાડ માટે ચિઠ્ઠીનો નિયમ</div><div class="font-semibold text-slate-800 mt-1 text-sm">${esc(LOTTERY_RULE)}</div></div>`;
   const lines = String(settings.rules || "").split("\n").map(x => x.trim()).filter(Boolean);
   $("rulesCustom").innerHTML = lines.length
     ? `<div class="text-sm font-semibold text-slate-700 mb-1">વધારાના નિયમો અને શરતો</div><ul class="list-disc pl-6 space-y-1 text-sm text-slate-700">${lines.map(l => `<li>${esc(l)}</li>`).join("")}</ul>` : "";
 }
+
+function openMembersModal() {
+  const s = getSummary(), list = s.membersList || [];
+  $("membersModalBody").innerHTML = list.length
+    ? `<table class="w-full text-sm"><thead class="bg-slate-100 text-left"><tr><th class="p-2 w-12">ક્રમ</th><th class="p-2">સભ્યનું નામ</th><th class="p-2 text-right">નામ સંખ્યા</th></tr></thead><tbody>` +
+      list.map((m, i) => `<tr class="border-b border-slate-100"><td class="p-2 text-slate-500">${i + 1}</td><td class="p-2 font-semibold">${esc(m.name)}</td><td class="p-2 text-right font-bold">${m.shares || 1}</td></tr>`).join("") +
+      `</tbody><tfoot><tr class="bg-indigo-50 font-bold"><td class="p-2"></td><td class="p-2">કુલ ${list.length} સભ્ય</td><td class="p-2 text-right">${list.reduce((a, m) => a + (m.shares || 1), 0)} નામ</td></tr></tfoot></table>`
+    : `<div class="p-6 text-center text-slate-500">હજી કોઈ સક્રિય સભ્ય નથી</div>`;
+  openModal("membersModal");
+}
+$("summaryCards").onclick = e => { if (e.target.closest("[data-open='members']")) openMembersModal(); };
 
 /* ---------- Ledger table ---------- */
 function ledgerTable(list, { admin }) {
@@ -406,11 +470,13 @@ function renderMember() {
   const est = r2(Math.max(s.loans, 0) * (+settings.interestRate / 100));
   const c = (t, v, cl) => `<div class="card p-4 border-l-4 ${cl}"><div class="text-xs text-slate-500 font-semibold">${t}</div><div class="text-xl font-bold mt-1">${fmt(v)}</div></div>`;
   $("memberCards").innerHTML =
-    c("💰 કુલ બચત", s.savings, "border-emerald-500") +
-    c("📤 બાકી લોન", s.loans, "border-rose-500") +
+    c("💰 ટોટલ બચત", s.savings, "border-emerald-500") +
+    c("📤 ટોટલ ઉપાડ", s.loans, "border-rose-500") +
     c("🗓️ આગામી માસિક વ્યાજ (અંદાજિત)", est, "border-amber-500") +
-    c("🧾 કુલ ભરેલું વ્યાજ + દંડ", s.interest + s.fees, "border-purple-500");
+    c("🧾 કુલ ભરેલું વ્યાજ", s.interest, "border-purple-500") +
+    c("✅ ટોટલ બચત − ટોટલ ઉપાડ", s.savings - s.loans, "border-teal-500");
   $("memberTitle").textContent = myMember ? `${myMember.name} નો હિસાબ${(myMember.shares || 1) > 1 ? ` (${myMember.shares} નામ)` : ""}` : "મારો હિસાબ";
+  $("pendingBanner").classList.toggle("hidden", myMember?.status !== "pending");
   $("prName").textContent = settings.name; $("prMember").textContent = myMember?.name || user?.email || "";
   $("prDate").textContent = todayStr();
   $("memberTable").innerHTML = ledgerTable(filteredMyTxs(), { admin: false });
@@ -418,8 +484,9 @@ function renderMember() {
 
 /* ---------- Admin render ---------- */
 function memberOptions(sel, withBlank) {
+  const list = withBlank ? members.filter(m => m.status !== "pending") : members;
   return (withBlank ? `<option value="">-- સભ્ય પસંદ કરો --</option>` : "") +
-    members.map(m => `<option value="${m.id}" ${sel === m.id ? "selected" : ""}>${esc(m.name)}${m.status === "inactive" ? " (નિષ્ક્રિય)" : ""}</option>`).join("");
+    list.map(m => `<option value="${m.id}" ${sel === m.id ? "selected" : ""}>${esc(m.name)}${m.status === "inactive" ? " (નિષ્ક્રિય)" : m.status === "pending" ? " (પ્રતીક્ષામાં)" : ""}</option>`).join("");
 }
 function typeOptions(sel, blankLabel) {
   return (blankLabel ? `<option value="">${blankLabel}</option>` : "") +
@@ -433,24 +500,30 @@ function renderAdmin() {
   const keepM = $("t_member").value;
   $("t_member").innerHTML = memberOptions(keepM, true);
   $("adminTable").innerHTML = ledgerTable(filteredAdminTxs(), { admin: true });
+  const pend = members.filter(m => m.status === "pending").length;
+  $("pendCount").textContent = pend ? `${pend} નવા` : ""; $("pendCount").classList.toggle("hidden", !pend);
   renderMemberList();
+  renderPublic();
+  scheduleSync();
 }
 function renderMemberList() {
   if (!members.length) { $("memberListTable").innerHTML = `<tbody><tr><td class="p-6 text-center text-slate-500">કોઈ ડેટા ઉપલબ્ધ નથી</td></tr></tbody>`; return; }
-  $("memberListTable").innerHTML = `<thead class="bg-slate-100 text-left"><tr><th class="p-2">નામ</th><th class="p-2">ઈમેલ</th><th class="p-2">મોબાઈલ</th><th class="p-2">નામ સંખ્યા</th><th class="p-2">સ્થિતિ</th><th class="p-2 text-right">બચત</th><th class="p-2 text-right">બાકી લોન</th><th class="p-2">ક્રિયા</th></tr></thead><tbody>` +
-    members.map(m => { const s = computeSummary(memberTxs(m.id));
+  $("memberListTable").innerHTML = `<thead class="bg-slate-100 text-left"><tr><th class="p-2">નામ</th><th class="p-2">ઈમેલ</th><th class="p-2">મોબાઈલ</th><th class="p-2">નામ સંખ્યા</th><th class="p-2">સ્થિતિ</th><th class="p-2 text-right">બચત</th><th class="p-2 text-right">બાકી ઉપાડ</th><th class="p-2">ક્રિયા</th></tr></thead><tbody>` +
+    members.map(m => { const s = computeSummary(memberTxs(m.id)); const st = STATUS[m.status] || STATUS.inactive;
+      const toggleBtn = m.status === "pending"
+        ? `<button data-mact="approve" data-id="${m.id}" class="px-2 py-1 rounded bg-emerald-600 text-white text-xs font-semibold">✅ મંજૂર કરો</button>`
+        : `<button data-mact="toggle" data-id="${m.id}" class="px-2 py-1 rounded bg-slate-600 text-white text-xs font-semibold">${m.status === "active" ? "નિષ્ક્રિય કરો" : "સક્રિય કરો"}</button>`;
       return `<tr class="border-b"><td class="p-2 font-semibold">${esc(m.name)}</td><td class="p-2">${esc(m.email)}</td><td class="p-2">${esc(m.mobile)}</td>
       <td class="p-2" title="${esc(m.names || "")}"><b>${m.shares || 1}</b>${m.names ? `<div class="text-xs text-slate-500">${esc(m.names)}</div>` : ""}</td>
-      <td class="p-2"><span class="px-2 py-0.5 rounded-full text-xs font-semibold ${m.status === "active" ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-600"}">${m.status === "active" ? "સક્રિય" : "નિષ્ક્રિય"}</span></td>
+      <td class="p-2"><span class="px-2 py-0.5 rounded-full text-xs font-semibold ${st[0]}">${st[1]}</span></td>
       <td class="p-2 text-right">${fmt(s.savings)}</td><td class="p-2 text-right">${fmt(s.loans)}</td>
       <td class="p-2 whitespace-nowrap"><button data-mact="edit" data-id="${m.id}" class="px-2 py-1 rounded bg-blue-500 text-white text-xs font-semibold">ફેરફાર</button>
-      <button data-mact="toggle" data-id="${m.id}" class="px-2 py-1 rounded bg-slate-600 text-white text-xs font-semibold">${m.status === "active" ? "નિષ્ક્રિય કરો" : "સક્રિય કરો"}</button></td></tr>`; }).join("") + `</tbody>`;
+      ${toggleBtn}</td></tr>`; }).join("") + `</tbody>`;
 }
 function fillSettingsForm() {
   $("s_name").value = settings.name; $("s_sub").value = settings.sub || "";
   $("s_save").value = settings.monthlySavings; $("s_rate").value = settings.interestRate;
-  $("s_due").value = settings.dueDay; $("s_ftype").value = settings.lateFeeType;
-  $("s_famt").value = settings.lateFeeAmount; $("s_rules").value = settings.rules || "";
+  $("s_due").value = settings.dueDay; $("s_rules").value = settings.rules || "";
 }
 
 /* ---------- Entry form smart logic ---------- */
@@ -466,19 +539,15 @@ function refreshEntry(trigger) {
       const bal = loanBalance(mid);
       if (bal > 0) {
         $("t_amount").value = r2(bal * settings.interestRate / 100);
-        $("t_note").value = `${fmt(bal)} બાકી લોન પર ${settings.interestRate}% લેખે વ્યાજ`;
-      } else { $("t_amount").value = ""; toast("આ સભ્યની કોઈ બાકી લોન નથી.", "warn"); }
+        $("t_note").value = `${fmt(bal)} બાકી ઉપાડ પર ${settings.interestRate}% લેખે વ્યાજ`;
+      } else { $("t_amount").value = ""; toast("આ સભ્યનો કોઈ બાકી ઉપાડ નથી.", "warn"); }
     }
   }
-  const li = lateInfo($("t_month").value, $("t_date").value, type);
-  $("lateBox").classList.toggle("hidden", !li);
-  if (li) $("lateMsg").textContent = `⚠️ નિયત તારીખ (તારીખ ${settings.dueDay}) પછી ચૂકવણી થઈ હોવાથી ${fmt(li.fee)} દંડ લાગુ પડે છે.`;
 }
 function resetEntry() {
   $("entryForm").reset();
   $("t_month").value = monthStr(); $("t_date").value = todayStr();
-  $("t_type").value = "deposit"; $("t_amount").value = settings.monthlySavings; $("t_fee").checked = true;
-  $("lateBox").classList.add("hidden");
+  $("t_type").value = "deposit"; $("t_amount").value = settings.monthlySavings;
 }
 
 /* ---------- Data subscriptions ---------- */
@@ -492,26 +561,28 @@ const stamp = d => ({ id: d.id, ...d.data(), createdMs: d.data().createdAt?.toMi
 
 function startAdmin() {
   unsubs.push(onSnapshot(collection(db, "members"), s => {
-    members = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.name.localeCompare(b.name, "gu")); renderAdmin(); }, e => toast("સભ્યો લોડ ન થયા: " + e.message, "err")));
+    members = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.name || "").localeCompare(b.name || "", "gu")); membersLoaded = true; renderAdmin(); }, e => toast("સભ્યો લોડ ન થયા: " + e.message, "err")));
   unsubs.push(onSnapshot(collection(db, "transactions"), s => {
-    txs = s.docs.map(stamp); renderAdmin(); }, e => toast("વ્યવહારો લોડ ન થયા: " + e.message, "err")));
+    txs = s.docs.map(stamp); txsLoaded = true; renderAdmin(); }, e => toast("વ્યવહારો લોડ ન થયા: " + e.message, "err")));
 }
-async function startMember(email) {
-  try {
-    const ms = await getDocs(query(collection(db, "members"), where("email", "==", email)));
-    myMember = ms.empty ? null : { id: ms.docs[0].id, ...ms.docs[0].data() };
-  } catch (e) { console.error(e); }
+function startMember(email) {
+  unsubs.push(onSnapshot(query(collection(db, "members"), where("email", "==", email)), s => {
+    myMember = s.empty ? null : { id: s.docs[0].id, ...s.docs[0].data() };
+    renderMember();
+    if (!myMember && !registering && !warnedNoMember) { warnedNoMember = true; toast("તમારો ઈમેલ સભ્ય યાદીમાં નથી. એડમિનનો સંપર્ક કરો.", "warn"); }
+  }, e => console.error(e)));
   unsubs.push(onSnapshot(query(collection(db, "transactions"), where("memberEmail", "==", email)), s => {
     myTxs = s.docs.map(stamp); renderMember(); }, e => toast("તમારો હિસાબ લોડ ન થયો: " + e.message, "err")));
   renderMember();
-  if (!myMember) toast("તમારો ઈમેલ સભ્ય યાદીમાં નથી. એડમિનનો સંપર્ક કરો.", "warn");
 }
 
 /* ---------- Auth ---------- */
 onAuthStateChanged(auth, u => {
-  clearSubs(); user = u; members = []; txs = []; myTxs = []; myMember = null;
+  clearSubs(); clearTimeout(syncTimer); user = u; members = []; txs = []; myTxs = []; myMember = null;
+  membersLoaded = txsLoaded = false; warnedNoMember = false;
   isAdmin = !!u && lc(u.email) === lc(ADMIN_EMAIL);
-  $("btnLogin").classList.toggle("hidden", !!u); $("btnLogout").classList.toggle("hidden", !u);
+  $("btnLogin").classList.toggle("hidden", !!u); $("btnRegister").classList.toggle("hidden", !!u);
+  $("btnLogout").classList.toggle("hidden", !u);
   $("navUser").textContent = u ? u.email : "";
   $("guestHint").classList.toggle("hidden", !!u);
   $("adminView").classList.toggle("hidden", !isAdmin);
@@ -525,11 +596,18 @@ const authErr = c => ({
   "auth/invalid-email": "અમાન્ય ઈમેલ ફોર્મેટ.", "auth/user-not-found": "આ ઈમેલ નોંધાયેલ નથી.",
   "auth/wrong-password": "પાસવર્ડ ખોટો છે.", "auth/invalid-credential": "ઈમેલ અથવા પાસવર્ડ ખોટો છે.",
   "auth/too-many-requests": "ઘણા પ્રયાસો થયા. થોડી વાર પછી ફરી પ્રયાસ કરો.", "auth/missing-email": "કૃપા કરીને ઈમેલ દાખલ કરો.",
-  "auth/network-request-failed": "ઇન્ટરનેટ કનેક્શન તપાસો.", "auth/user-disabled": "આ ખાતું બંધ કરેલું છે."
+  "auth/network-request-failed": "ઇન્ટરનેટ કનેક્શન તપાસો.", "auth/user-disabled": "આ ખાતું બંધ કરેલું છે.",
+  "auth/email-already-in-use": "આ ઈમેલથી ખાતું પહેલેથી બનેલું છે. લોગીન કરો અથવા 'પાસવર્ડ ભૂલી ગયા' વાપરો.",
+  "auth/weak-password": "પાસવર્ડ ઓછામાં ઓછો 6 અક્ષરનો રાખો."
 }[c] || "કંઈક ખોટું થયું. ફરી પ્રયાસ કરો.");
-function loginMsg(t, ok) { const m = $("loginMsg"); m.textContent = t; m.className = `text-sm p-2 rounded-lg ${ok ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`; }
+const msgBox = (id, t, ok) => { const m = $(id); m.textContent = t; m.className = `text-sm p-2 rounded-lg ${ok ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`; };
+const loginMsg = (t, ok) => msgBox("loginMsg", t, ok);
+const regMsg = (t, ok) => msgBox("registerMsg", t, ok);
 
 $("btnLogin").onclick = () => { $("loginMsg").className = "hidden"; openModal("loginModal"); };
+$("btnRegister").onclick = () => { $("registerMsg").className = "hidden"; openModal("registerModal"); };
+$("toRegister").onclick = () => { closeModal("loginModal"); $("btnRegister").click(); };
+$("toLogin").onclick = () => { closeModal("registerModal"); $("btnLogin").click(); };
 $("btnLogout").onclick = () => signOut(auth).then(() => toast("સફળતાપૂર્વક લોગ આઉટ થયા."));
 $("loginForm").onsubmit = async e => {
   e.preventDefault(); loading(true);
@@ -546,6 +624,33 @@ $("forgotBtn").onclick = async () => {
     loginMsg("✅ પાસવર્ડ રીસેટ કરવાની લિંક તમારા ઈમેલ પર મોકલી આપવામાં આવી છે. કૃપા કરીને તમારું ઈમેલ ઇનબોક્સ (અથવા Spam ફોલ્ડર) તપાસો.", true);
   } catch (err) { loginMsg(authErr(err.code), false); }
   loading(false);
+};
+
+/* ---------- Register (નવા સભ્ય જાતે ખાતું બનાવે) ---------- */
+$("registerForm").onsubmit = async e => {
+  e.preventDefault();
+  const name = $("r_name").value.trim(), email = lc($("r_email").value), mobile = $("r_mobile").value.replace(/\D/g, "");
+  const shares = Math.max(1, Math.min(50, Math.floor(+$("r_shares").value || 1))), pass = $("r_pass").value;
+  if (!name) return regMsg("કૃપા કરીને નામ દાખલ કરો.", false);
+  if (mobile.length !== 10) return regMsg("મોબાઈલ નંબર 10 અંકનો હોવો જોઈએ.", false);
+  if (pass.length < 6) return regMsg("પાસવર્ડ ઓછામાં ઓછો 6 અક્ષરનો રાખો.", false);
+  if (pass !== $("r_pass2").value) return regMsg("બંને પાસવર્ડ સરખા નથી.", false);
+  if (email === lc(ADMIN_EMAIL)) return regMsg("આ ઈમેલથી રજીસ્ટર થઈ શકાતું નથી. કૃપા કરીને લોગીન કરો.", false);
+  loading(true); registering = true;
+  let created = false;
+  try {
+    await createUserWithEmailAndPassword(auth, email, pass);   // લોગીન ખાતું બન્યું (આપમેળે લોગીન પણ થઈ જાય)
+    created = true;
+    // એડમિને પહેલેથી આ ઈમેલથી સભ્ય ઉમેર્યા હોય તો નવી એન્ટ્રી ન બનાવો
+    const ex = await getDocs(query(collection(db, "members"), where("email", "==", email)));
+    if (ex.empty) await addDoc(collection(db, "members"), { name, email, mobile, shares, names: "", status: "pending", createdAt: serverTimestamp() });
+    closeModal("registerModal"); $("registerForm").reset();
+    toast("✅ રજીસ્ટ્રેશન સફળ! એડમિન મંજૂરી આપશે એટલે તમે સક્રિય સભ્ય ગણાશો.");
+  } catch (err) {
+    if (created) { closeModal("registerModal"); toast("ખાતું બન્યું, પણ સભ્ય નોંધણી સેવ ન થઈ: " + err.message + " — એડમિનનો સંપર્ક કરો.", "err"); }
+    else regMsg(authErr(err.code), false);
+  }
+  registering = false; loading(false);
 };
 
 /* ---------- Member filters ---------- */
@@ -570,7 +675,7 @@ $("settingsForm").onsubmit = async e => {
     await setDoc(doc(db, "settings", "config"), {
       name: $("s_name").value.trim(), sub: $("s_sub").value.trim(),
       monthlySavings: +$("s_save").value, interestRate: +$("s_rate").value, dueDay: due,
-      lateFeeType: $("s_ftype").value, lateFeeAmount: +$("s_famt").value, rules: $("s_rules").value
+      rules: $("s_rules").value
     });
     toast("✅ સેટિંગ્સ સેવ થયા.");
   } catch (err) { toast("સેવ ન થયું: " + err.message, "err"); }
@@ -603,7 +708,6 @@ $("memberForm").onsubmit = async e => {
       await b.commit();
     } else await addDoc(collection(db, "members"), { ...data, createdAt: serverTimestamp() });
     toast("✅ સભ્ય સેવ થયા."); resetMemberForm();
-    if (id) await syncSummary();
   } catch (err) { toast("સેવ ન થયું: " + err.message, "err"); }
   loading(false);
 };
@@ -615,7 +719,8 @@ $("memberListTable").onclick = async e => {
     $("m_shares").value = m.shares || 1; $("m_names").value = m.names || ""; updHint();
     $("memFormTitle").textContent = "સભ્ય ફેરફાર"; $("m_cancel").classList.remove("hidden"); window.scrollTo({ top: 0, behavior: "smooth" });
   } else {
-    try { await updateDoc(doc(db, "members", m.id), { status: m.status === "active" ? "inactive" : "active" }); toast("✅ સ્થિતિ બદલાઈ."); }
+    const next = b.dataset.mact === "approve" ? "active" : (m.status === "active" ? "inactive" : "active");
+    try { await updateDoc(doc(db, "members", m.id), { status: next }); toast(next === "active" && b.dataset.mact === "approve" ? "✅ સભ્ય મંજૂર થયા." : "✅ સ્થિતિ બદલાઈ."); }
     catch (err) { toast(err.message, "err"); }
   }
 };
@@ -630,18 +735,13 @@ $("entryForm").onsubmit = async e => {
   const amount = +$("t_amount").value, type = $("t_type").value;
   if (!m) return toast("કૃપા કરીને સભ્ય પસંદ કરો.", "err");
   if (!(amount > 0)) return toast("માન્ય રકમ દાખલ કરો.", "err");
-  if (type === "interest" && loanBalance(m.id) <= 0) return toast("આ સભ્યની કોઈ બાકી લોન નથી, તેથી વ્યાજ ઉમેરી શકાય નહીં.", "err");
+  if (type === "interest" && loanBalance(m.id) <= 0) return toast("આ સભ્યનો કોઈ બાકી ઉપાડ નથી, તેથી વ્યાજ ઉમેરી શકાય નહીં.", "err");
   const month = $("t_month").value, date = $("t_date").value;
   if (!month || !date) return toast("મહિનો અને તારીખ દાખલ કરો.", "err");
-  const base = { memberId: m.id, memberName: m.name, memberEmail: m.email, month, date, createdAt: serverTimestamp() };
   loading(true);
   try {
-    const b = writeBatch(db);
-    b.set(doc(collection(db, "transactions")), { ...base, type, amount, note: $("t_note").value.trim() });
-    const li = lateInfo(month, date, type);
-    if (li && $("t_fee").checked)
-      b.set(doc(collection(db, "transactions")), { ...base, type: "late_fee", amount: li.fee, note: `${li.days} દિવસ મોડી ચૂકવણીનો દંડ` });
-    await b.commit(); await syncSummary();
+    await addDoc(collection(db, "transactions"), { memberId: m.id, memberName: m.name, memberEmail: m.email, month, date,
+      type, amount, note: $("t_note").value.trim(), createdAt: serverTimestamp() });
     toast("✅ એન્ટ્રી સેવ થઈ."); resetEntry();
   } catch (err) { toast("સેવ ન થયું: " + err.message, "err"); }
   loading(false);
@@ -657,10 +757,10 @@ $("adminTable").onclick = async e => {
   const b = e.target.closest("[data-act]"); if (!b) return;
   const t = txs.find(x => x.id === b.dataset.id); if (!t) return;
   if (b.dataset.act === "del") {
-    const ok = await confirmBox("એન્ટ્રી કાઢી નાખવી છે?", `<b>${esc(t.memberName)}</b> — ${TYPES[t.type]?.label} — ${fmt(t.amount)} (${esc(t.date)})<br><span class="text-rose-600">આ ક્રિયા પાછી લઈ શકાશે નહીં.</span>`, "હા, કાઢી નાખો");
+    const ok = await confirmBox("એન્ટ્રી કાઢી નાખવી છે?", `<b>${esc(t.memberName)}</b> — ${TYPES[t.type]?.label || esc(t.type)} — ${fmt(t.amount)} (${esc(t.date)})<br><span class="text-rose-600">આ ક્રિયા પાછી લઈ શકાશે નહીં.</span>`, "હા, કાઢી નાખો");
     if (!ok) return;
     loading(true);
-    try { await deleteDoc(doc(db, "transactions", t.id)); await syncSummary(); toast("✅ એન્ટ્રી કાઢી નાખી."); }
+    try { await deleteDoc(doc(db, "transactions", t.id)); toast("✅ એન્ટ્રી કાઢી નાખી."); }
     catch (err) { toast(err.message, "err"); }
     loading(false);
   } else if (b.dataset.act === "edit") {
@@ -677,7 +777,7 @@ $("editForm").onsubmit = async e => {
   try {
     await updateDoc(doc(db, "transactions", $("e_id").value), { memberId: m.id, memberName: m.name, memberEmail: m.email,
       month: $("e_month").value, date: $("e_date").value, type: $("e_type").value, amount, note: $("e_note").value.trim() });
-    await syncSummary(); closeModal("editModal"); toast("✅ એન્ટ્રી અપડેટ થઈ.");
+    closeModal("editModal"); toast("✅ એન્ટ્રી અપડેટ થઈ.");
   } catch (err) { toast(err.message, "err"); }
   loading(false);
 };
@@ -686,7 +786,7 @@ function whatsapp(t) {
   const m = members.find(x => x.id === t.memberId);
   if (!m?.mobile) return toast("સભ્યનો મોબાઈલ નંબર ઉપલબ્ધ નથી.", "err");
   const s = computeSummary(memberTxs(t.memberId));
-  const msg = `🏦 *${settings.name}*\n\nસભ્યનું નામ: ${t.memberName}${(m.shares || 1) > 1 ? ` (${m.shares} નામ)` : ""}\nતારીખ / મહિનો: ${t.date} / ${t.month}\nવિગત: ${TYPES[t.type]?.label}${t.note ? " (" + t.note + ")" : ""}\nરકમ: ${fmt(t.amount)}\n\nકુલ બચત બેલેન્સ: ${fmt(s.savings)}\nબાકી લોન બેલેન્સ: ${fmt(s.loans)}\n\nઆભાર 🙏`;
+  const msg = `🏦 *${settings.name}*\n\nસભ્યનું નામ: ${t.memberName}${(m.shares || 1) > 1 ? ` (${m.shares} નામ)` : ""}\nતારીખ / મહિનો: ${t.date} / ${t.month}\nવિગત: ${TYPES[t.type]?.label || t.type}${t.note ? " (" + t.note + ")" : ""}\nરકમ: ${fmt(t.amount)}\n\nટોટલ બચત: ${fmt(s.savings)}\nટોટલ ઉપાડ (બાકી): ${fmt(s.loans)}\n\nઆભાર 🙏`;
   window.open(`https://wa.me/91${m.mobile}?text=${encodeURIComponent(msg)}`, "_blank");
 }
 
@@ -700,9 +800,9 @@ $("bi_btn").onclick = async () => {
     if (txs.some(t => t.memberId === m.id && t.type === "interest" && t.month === month)) { skipped.push(m.name); continue; }
     rows.push({ m, bal, amt: r2(bal * settings.interestRate / 100) });
   }
-  if (!rows.length) return toast(skipped.length ? "બધા સભ્યોનું આ મહિનાનું વ્યાજ પહેલેથી નોંધાયેલું છે." : "કોઈ સભ્યની બાકી લોન નથી.", "warn");
+  if (!rows.length) return toast(skipped.length ? "બધા સભ્યોનું આ મહિનાનું વ્યાજ પહેલેથી નોંધાયેલું છે." : "કોઈ સભ્યનો બાકી ઉપાડ નથી.", "warn");
   const total = rows.reduce((a, r) => a + r.amt, 0);
-  const html = `<table class="w-full text-sm"><thead class="bg-slate-100"><tr><th class="p-1 text-left">સભ્ય</th><th class="p-1 text-right">બાકી લોન</th><th class="p-1 text-right">વ્યાજ</th></tr></thead><tbody>` +
+  const html = `<table class="w-full text-sm"><thead class="bg-slate-100"><tr><th class="p-1 text-left">સભ્ય</th><th class="p-1 text-right">બાકી ઉપાડ</th><th class="p-1 text-right">વ્યાજ</th></tr></thead><tbody>` +
     rows.map(r => `<tr class="border-b"><td class="p-1">${esc(r.m.name)}</td><td class="p-1 text-right">${fmt(r.bal)}</td><td class="p-1 text-right font-semibold">${fmt(r.amt)}</td></tr>`).join("") +
     `</tbody></table><div class="mt-2 font-bold">કુલ વ્યાજ: ${fmt(total)} (${settings.interestRate}% / માસ) — મહિનો: ${esc(month)}</div>` +
     (skipped.length ? `<div class="mt-1 text-amber-700 text-xs">છોડી દીધેલા (પહેલેથી નોંધાયેલ): ${skipped.map(esc).join(", ")}</div>` : "");
@@ -713,10 +813,10 @@ $("bi_btn").onclick = async () => {
       const b = writeBatch(db);
       rows.slice(i, i + 400).forEach(r => b.set(doc(collection(db, "transactions")), {
         memberId: r.m.id, memberName: r.m.name, memberEmail: r.m.email, month, date: todayStr(), type: "interest", amount: r.amt,
-        note: `${fmt(r.bal)} બાકી લોન પર ${settings.interestRate}% લેખે વ્યાજ`, createdAt: serverTimestamp() }));
+        note: `${fmt(r.bal)} બાકી ઉપાડ પર ${settings.interestRate}% લેખે વ્યાજ`, createdAt: serverTimestamp() }));
       await b.commit();
     }
-    await syncSummary(); toast(`✅ ${rows.length} સભ્યોનું વ્યાજ ઉમેરાયું.`);
+    toast(`✅ ${rows.length} સભ્યોનું વ્યાજ ઉમેરાયું.`);
   } catch (err) { toast("નિષ્ફળ: " + err.message, "err"); }
   loading(false);
 };
@@ -731,9 +831,9 @@ function downloadCSV(name, rows) {
 }
 $("exp_members").onclick = () => {
   if (!members.length) return toast("કોઈ ડેટા ઉપલબ્ધ નથી.", "warn");
-  const rows = [["સભ્યનું નામ", "મોબાઈલ નંબર", "ઈમેલ", "નામ સંખ્યા", "કુલ બચત બેલેન્સ (₹)", "લીધેલી લોન (₹)", "ભરેલા લોન હપ્તા (₹)", "બાકી લોન (₹)", "ભરેલું વ્યાજ અને દંડ (₹)"]];
+  const rows = [["સભ્યનું નામ", "મોબાઈલ નંબર", "ઈમેલ", "નામ સંખ્યા", "સ્થિતિ", "ટોટલ બચત (₹)", "કુલ ઉપાડ (₹)", "પરત ભરેલ (₹)", "બાકી ઉપાડ (₹)", "બચત − બાકી ઉપાડ (₹)", "ભરેલું વ્યાજ (₹)"]];
   members.forEach(m => { const s = computeSummary(memberTxs(m.id));
-    rows.push([m.name, m.mobile, m.email, m.shares || 1, s.savings, s.disbursed, s.repaid, s.loans, r2(s.interest + s.fees)]); });
+    rows.push([m.name, m.mobile, m.email, m.shares || 1, (STATUS[m.status] || STATUS.inactive)[1], s.savings, s.disbursed, s.repaid, s.loans, r2(s.savings - s.loans), r2(s.interest)]); });
   downloadCSV(`members_balance_${todayStr()}.csv`, rows);
 };
 $("exp_tx").onclick = () => {
