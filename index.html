@@ -363,7 +363,8 @@ function computeSummary(list) {
   return { deposits: dep, dividends: div, disbursed: out, repaid: rep, interest: int, savings: dep + div, loans: out - rep };
 }
 const memberTxs = id => txs.filter(t => t.memberId === id);
-const loanBalance = id => computeSummary(memberTxs(id)).loans;
+// month આપો તો તે મહિનાના અંત સુધીની બાકી ઉપાડ રકમ (વ્યાજ તે મહિના પ્રમાણે ગણાય)
+const loanBalance = (id, month) => computeSummary(memberTxs(id).filter(t => !month || (t.month || "") <= month)).loans;
 
 /* પબ્લિક સારાંશ: ફક્ત કુલ આંકડા + સભ્યોના નામ અને નામ-સંખ્યા (ઈમેલ/મોબાઈલ નહીં) */
 function buildSummary(ms, list) {
@@ -414,7 +415,7 @@ function renderPublic() {
        <div class="text-[11px] text-indigo-600 font-semibold mt-1">👆 સભ્યોની યાદી જોવા ક્લિક કરો</div></button>` +
     cardHtml("ટોટલ નામ", s.names, "border-sky-500", "🏷️") +
     cardHtml("ટોટલ બેલેન્સ (બચત)", fmt(s.savings), "border-emerald-500", "💰") +
-    cardHtml("ટોટલ ઉપલબ્ધ બેલેન્સ", fmt(s.available), "border-teal-500", "✅", "ટોટલ બેલેન્સ − ટોટલ ઉપાડ") +
+    cardHtml("ટોટલ એવૈલબલ બેલેન્સ", fmt(s.available), "border-teal-500", "✅", "ટોટલ બેલેન્સ − ટોટલ ઉપાડ") +
     cardHtml("ટોટલ ઉપાડ", fmt(s.withdrawn), "border-rose-500", "📤", "પરત ભર્યા પછી બાકી") +
     cardHtml("ટોટલ વ્યાજ", fmt(s.interest), "border-amber-500", "📈");
 
@@ -536,11 +537,11 @@ function refreshEntry(trigger) {
       if (n > 1) $("t_note").value = `${fmt(settings.monthlySavings)} × ${n} નામ`;
     }
     if (type === "interest" && mid) {
-      const bal = loanBalance(mid);
+      const mo = $("t_month").value, bal = loanBalance(mid, mo);
       if (bal > 0) {
         $("t_amount").value = r2(bal * settings.interestRate / 100);
-        $("t_note").value = `${fmt(bal)} બાકી ઉપાડ પર ${settings.interestRate}% લેખે વ્યાજ`;
-      } else { $("t_amount").value = ""; toast("આ સભ્યનો કોઈ બાકી ઉપાડ નથી.", "warn"); }
+        $("t_note").value = `${mo} મહિનાના ${fmt(bal)} ઉપાડ પર ${settings.interestRate}% લેખે વ્યાજ`;
+      } else { $("t_amount").value = ""; toast(`આ સભ્યનો ${mo} મહિનામાં કોઈ બાકી ઉપાડ નથી.`, "warn"); }
     }
   }
 }
@@ -727,7 +728,9 @@ $("memberListTable").onclick = async e => {
 
 /* ---------- Entry form ---------- */
 ["t_member", "t_type"].forEach(i => $(i).onchange = () => refreshEntry(i));
-["t_month", "t_date"].forEach(i => $(i).onchange = () => refreshEntry("date"));
+$("t_date").onchange = () => refreshEntry("date");
+// મહિનો બદલાય ત્યારે વ્યાજ ફરી ગણાય
+$("t_month").onchange = () => refreshEntry($("t_type").value === "interest" ? "t_member" : "date");
 $("t_type").innerHTML = typeOptions("deposit");
 $("entryForm").onsubmit = async e => {
   e.preventDefault();
@@ -735,8 +738,8 @@ $("entryForm").onsubmit = async e => {
   const amount = +$("t_amount").value, type = $("t_type").value;
   if (!m) return toast("કૃપા કરીને સભ્ય પસંદ કરો.", "err");
   if (!(amount > 0)) return toast("માન્ય રકમ દાખલ કરો.", "err");
-  if (type === "interest" && loanBalance(m.id) <= 0) return toast("આ સભ્યનો કોઈ બાકી ઉપાડ નથી, તેથી વ્યાજ ઉમેરી શકાય નહીં.", "err");
   const month = $("t_month").value, date = $("t_date").value;
+  if (type === "interest" && loanBalance(m.id, month) <= 0) return toast(`આ સભ્યનો ${month} મહિનામાં કોઈ બાકી ઉપાડ નથી, તેથી વ્યાજ ઉમેરી શકાય નહીં.`, "err");
   if (!month || !date) return toast("મહિનો અને તારીખ દાખલ કરો.", "err");
   loading(true);
   try {
@@ -796,7 +799,7 @@ $("bi_btn").onclick = async () => {
   if (!month) return toast("મહિનો પસંદ કરો.", "err");
   const rows = [], skipped = [];
   for (const m of members) {
-    const bal = loanBalance(m.id); if (bal <= 0) continue;
+    const bal = loanBalance(m.id, month); if (bal <= 0) continue;
     if (txs.some(t => t.memberId === m.id && t.type === "interest" && t.month === month)) { skipped.push(m.name); continue; }
     rows.push({ m, bal, amt: r2(bal * settings.interestRate / 100) });
   }
@@ -813,7 +816,7 @@ $("bi_btn").onclick = async () => {
       const b = writeBatch(db);
       rows.slice(i, i + 400).forEach(r => b.set(doc(collection(db, "transactions")), {
         memberId: r.m.id, memberName: r.m.name, memberEmail: r.m.email, month, date: todayStr(), type: "interest", amount: r.amt,
-        note: `${fmt(r.bal)} બાકી ઉપાડ પર ${settings.interestRate}% લેખે વ્યાજ`, createdAt: serverTimestamp() }));
+        note: `${month} મહિનાના ${fmt(r.bal)} ઉપાડ પર ${settings.interestRate}% લેખે વ્યાજ`, createdAt: serverTimestamp() }));
       await b.commit();
     }
     toast(`✅ ${rows.length} સભ્યોનું વ્યાજ ઉમેરાયું.`);
